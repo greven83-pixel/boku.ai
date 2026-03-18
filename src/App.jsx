@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from "react";
+import { supabase } from "./supabaseClient";
 
 // ==================== DATA GENERATION ====================
 const SERVICES = [
@@ -16,8 +17,14 @@ const SERVICES = [
   { id: "spa", name: "SPA Premium", duration: 90, price: 95, cost: 28 },
 ];
 
-const DOG_NAMES = ["Luna","Buddy","Rocky","Bella","Max","Kira","Zeus","Mia","Leo","Lola","Oscar","Nina","Thor","Stella","Rex","Zoe","Duke","Daisy","Simba","Ruby","Charlie","Nala","Bruno","Coco","Jack","Maya","Toby","Lilli","Ares","Moka","Lucky","Pippi","Axel","Bianca","Pluto","Greta","Spike","Chanel","Ringo","Perla"];
-const BREEDS = ["Barboncino","Golden Retriever","Shih Tzu","Yorkshire","Labrador","Cocker Spaniel","Maltese","Bulldog Francese","Pastore Tedesco","Border Collie","Chihuahua","Beagle","Jack Russell","Setter Irlandese","Schnauzer","Cavalier King","Husky","Bassotto","Boxer","Lagotto Romagnolo"];
+const PET_DATA = {
+  cane:     { names: ["Luna","Buddy","Rocky","Bella","Max","Kira","Zeus","Mia","Leo","Lola","Oscar","Nina","Thor","Stella","Rex","Zoe","Duke","Daisy","Simba","Ruby","Charlie","Nala","Bruno","Coco","Jack","Maya","Toby","Lilli","Ares","Moka","Lucky","Pippi","Axel","Bianca","Pluto","Greta","Spike","Chanel","Ringo","Perla"], breeds: ["Barboncino","Golden Retriever","Shih Tzu","Yorkshire","Labrador","Cocker Spaniel","Maltese","Bulldog Francese","Pastore Tedesco","Border Collie","Chihuahua","Beagle","Jack Russell","Setter Irlandese","Schnauzer","Cavalier King","Husky","Bassotto","Boxer","Lagotto Romagnolo"] },
+  gatto:    { names: ["Micio","Neve","Tigre","Sole","Luna","Pixel","Momo","Fufi","Birba","Ombra","Pepita","Faro","Briciola","Speedy","Polpo","Nuvola","Zenzero","Cleo","Tartufo","Miele"], breeds: ["Europeo","Persiano","Siamese","Maine Coon","Ragdoll","British Shorthair","Bengala","Sphynx","Certosino","Abissino"] },
+  coniglio: { names: ["Fiocco","Polpetta","Biscotto","Batuffolo","Ciuffo","Palla","Carota","Cotone","Macchia","Bolla"], breeds: ["Nano","Ariete","Angorà","Rex","Lionhead","Olandese","Gigante Fiammingo","Mini Rex"] },
+  uccello:  { names: ["Cip","Tweetie","Fly","Sole","Pico","Cielo","Birillo","Fifi","Arco","Rio"], breeds: ["Pappagallo","Canarino","Parrocchetto","Cacatua","Cocorita","Ninfea","Inseparabile","Cardellino"] },
+  rettile:  { names: ["Spike","Rex","Geko","Flash","Drago","Sandy","Sasso","Bolt","Kaa","Iggy"], breeds: ["Iguana","Leopard Gecko","Pitone Reale","Drago Barbuto","Camaleonte","Tartaruga","Geco Diurno","Serpente del Grano"] },
+};
+const ANIMAL_TYPES = ["cane","cane","cane","cane","cane","cane","gatto","gatto","gatto","coniglio","uccello","rettile"];
 const OWNER_FIRST = ["Marco","Giulia","Alessandro","Francesca","Luca","Arianna","Andrea","Sara","Davide","Elena","Matteo","Chiara","Stefano","Valentina","Roberto","Laura","Paolo","Silvia","Giuseppe","Anna","Lorenzo","Maria","Fabio","Claudia","Simone","Federica","Antonio","Elisa","Michele","Martina"];
 const OWNER_LAST = ["Rossi","Bianchi","Ferrari","Russo","Romano","Colombo","Ricci","Marino","Greco","Bruno","Gallo","Conti","De Luca","Mancini","Costa","Giordano","Rizzo","Lombardi","Moretti","Barbieri","Fontana","Santoro","Mariani","Rinaldi","Caruso","Ferrara","Galli","Martini","Leone","Longo"];
 const SIZES = ["piccola","media","grande"];
@@ -38,12 +45,14 @@ function generateData() {
     do { fn = pick(OWNER_FIRST); ln = pick(OWNER_LAST); key = fn+ln; } while (usedPairs.has(key));
     usedPairs.add(key);
     const size = pick(SIZES);
+    const animalType = pick(ANIMAL_TYPES);
+    const petPool = PET_DATA[animalType];
     clients.push({
       id: `c${i}`, firstName: fn, lastName: ln,
       phone: `+39 ${ri(320,389)} ${ri(100,999)} ${ri(1000,9999)}`,
       email: `${fn.toLowerCase()}.${ln.toLowerCase()}@email.it`,
-      dogName: pick(DOG_NAMES), breed: pick(BREEDS), size,
-      notes: rng() > 0.7 ? pick(["Cane ansioso, maneggiare con cura","Allergia a shampoo profumati","Preferisce appuntamenti mattutini","Cane anziano, fare attenzione","Pelo annodato frequente","Cliente VIP","Tende a mordere durante taglio unghie","Richiede museruola"]) : "",
+      animalType, petName: pick(petPool.names), breed: pick(petPool.breeds), size,
+      notes: rng() > 0.7 ? pick(["Animale ansioso, maneggiare con cura","Allergia a shampoo profumati","Preferisce appuntamenti mattutini","Animale anziano, fare attenzione","Pelo annodato frequente","Cliente VIP","Tende a mordere durante taglio unghie","Richiede museruola"]) : "",
       registeredDate: `2025-${String(ri(1,8)).padStart(2,"0")}-${String(ri(1,28)).padStart(2,"0")}`,
       totalSpent: 0, visitCount: 0, lastVisit: null, loyaltyPoints: 0,
       preferredDay: pick(["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"]),
@@ -75,7 +84,7 @@ function generateData() {
       const dateStr = `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
       bookings.push({
         id: `b${bid++}`, clientId: client.id, clientName: `${client.firstName} ${client.lastName}`,
-        dogName: client.dogName, breed: client.breed, serviceId: service.id, serviceName: service.name,
+        petName: client.petName, animalType: client.animalType, breed: client.breed, serviceId: service.id, serviceName: service.name,
         date: dateStr, time: `${String(hour).padStart(2,"0")}:${String(minute).padStart(2,"0")}`,
         duration: service.duration, price: finalPrice, cost: service.cost, status,
         notes: rng() > 0.8 ? pick(["Richiesto shampoo biologico","Extra profumazione","Fiocco regalo","Taglio specifico come foto","Portare guinzaglio nuovo"]) : "",
@@ -93,6 +102,27 @@ function generateData() {
   bookings.sort((a, b) => a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date));
   return { clients, bookings, services: SERVICES };
 }
+
+// ==================== DB MAPPERS ====================
+const dbToClient = (c) => ({
+  id: c.id, firstName: c.first_name, lastName: c.last_name,
+  phone: c.phone || "", email: c.email || "",
+  animalType: c.animal_type, petName: c.pet_name, breed: c.breed, size: c.size,
+  notes: c.notes || "", registeredDate: c.registered_date,
+  totalSpent: Number(c.total_spent) || 0, visitCount: c.visit_count || 0,
+  lastVisit: c.last_visit, loyaltyPoints: c.loyalty_points || 0,
+  preferredDay: c.preferred_day, source: c.source, rating: c.rating, mordace: c.mordace || false,
+});
+
+const dbToBooking = (b) => ({
+  id: b.id, clientId: b.client_id, clientName: b.client_name,
+  petName: b.pet_name, animalType: b.animal_type, breed: b.breed,
+  serviceId: b.service_id, serviceName: b.service_name,
+  date: b.date, time: b.time, duration: b.duration,
+  price: Number(b.price) || 0, cost: Number(b.cost) || 0, status: b.status,
+  notes: b.notes || "", createdVia: b.created_via, reminderSent: b.reminder_sent || false,
+  payment: b.payment || "",
+});
 
 // ==================== ICONS ====================
 const Icon = ({ name, size = 18, color = "currentColor" }) => {
@@ -115,8 +145,19 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
     sparkle: <svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M12 0L14.59 8.41L23 12L14.59 15.59L12 24L9.41 15.59L1 12L9.41 8.41Z"/></svg>,
     send: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
     brain: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M12 2a5 5 0 015 5c0 1.5-.5 2.5-1.5 3.5L12 14l-3.5-3.5C7.5 9.5 7 8.5 7 7a5 5 0 015-5z"/><path d="M12 14v8M8 18h8"/></svg>,
+    dog: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 2.028M10 5.172c1.056.886 2 2.386 2 4.328V12h1a4 4 0 010 8H7a4 4 0 01-4-4v-1l1.538-1.769A2 2 0 006 11.5h0"/><path d="M14 6l1-1 1 1M14 9h4l1-4"/><circle cx="8.5" cy="16.5" r=".5" fill={color}/></svg>,
   };
   return icons[name] || null;
+};
+
+// ==================== ANIMAL COLORS ====================
+const ANIMAL_COLORS = {
+  cane:     { bg: "rgba(110,231,183,0.18)", border: "#6EE7B7", text: "#6EE7B7", emoji: "🐕" },
+  gatto:    { bg: "rgba(167,139,250,0.18)", border: "#A78BFA", text: "#A78BFA", emoji: "🐈" },
+  coniglio: { bg: "rgba(251,191,36,0.18)",  border: "#FBBF24", text: "#FBBF24", emoji: "🐇" },
+  uccello:  { bg: "rgba(96,165,250,0.18)",  border: "#60A5FA", text: "#60A5FA", emoji: "🦜" },
+  rettile:  { bg: "rgba(244,114,182,0.18)", border: "#F472B6", text: "#F472B6", emoji: "🦎" },
+  altro:    { bg: "rgba(148,163,184,0.18)", border: "#94A3B8", text: "#94A3B8", emoji: "🐾" },
 };
 
 // ==================== STYLES ====================
@@ -218,11 +259,7 @@ body, html, #root { height: 100%; width: 100%; font-family: var(--font); backgro
 .cal-cell.today { background: var(--accent-dim); }
 .cal-day { font-size: 12px; font-weight: 600; margin-bottom: 4px; padding: 2px 4px; }
 .cal-booking { font-size: 10px; padding: 2px 5px; margin-bottom: 2px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; font-weight: 500; }
-.cal-booking.completato { background: var(--success-dim); color: var(--success); }
-.cal-booking.confermato { background: var(--blue-dim); color: var(--blue); }
-.cal-booking.in-attesa { background: var(--warning-dim); color: var(--warning); }
-.cal-booking.cancellato { background: var(--danger-dim); color: var(--danger); }
-.cal-booking.no-show { background: var(--purple-dim); color: var(--purple); }
+.cal-booking.cancellato, .cal-booking.no-show { opacity: 0.4; }
 .cal-more { font-size: 10px; color: var(--text-muted); padding: 2px 5px; font-weight: 500; }
 
 /* Table */
@@ -348,7 +385,7 @@ select option { background: var(--bg3); color: var(--text); }
 .week-slot.drag-preview-start.drag-preview-end { border-radius: 6px; }
 .week-drag-overlay { position: absolute; left: 3px; right: 3px; background: rgba(110,231,183,0.18); border: 2px solid var(--accent); border-radius: 6px; z-index: 1; pointer-events: none; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--accent); }
 .week-slot.half { border-bottom-style: dashed; border-bottom-color: rgba(255,255,255,0.02); }
-.week-booking-block { position: absolute; left: 2px; right: 2px; border-radius: 5px; padding: 4px 6px; font-size: 11px; font-weight: 500; overflow: hidden; cursor: pointer; transition: opacity 150ms; z-index: 2; border-left: 3px solid; }
+.week-booking-block { position: absolute; border-radius: 5px; padding: 4px 6px; font-size: 11px; font-weight: 500; overflow: hidden; cursor: pointer; transition: opacity 150ms; z-index: 2; border-left: 3px solid; }
 .week-booking-block:hover { opacity: 0.85; }
 .week-booking-block .wb-time { font-weight: 700; font-size: 10px; }
 .week-booking-block .wb-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -359,13 +396,21 @@ select option { background: var(--bg3); color: var(--text); }
 
 // ==================== MAIN APP ====================
 export default function BokuAI() {
-  const [data, setData] = useState(() => generateData());
-  const clients = data.clients;
-  const bookings = data.bookings;
-  const services = data.services;
-  const setClients = (fn) => setData(d => ({ ...d, clients: typeof fn === "function" ? fn(d.clients) : fn }));
-  const setBookings = (fn) => setData(d => ({ ...d, bookings: typeof fn === "function" ? fn(d.bookings) : fn }));
-  const setServices = (fn) => setData(d => ({ ...d, services: typeof fn === "function" ? fn(d.services) : fn }));
+  const [clients, setClients] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [services, setServices] = useState(SERVICES);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      const { data: c } = await supabase.from('clients').select('*');
+      const { data: b } = await supabase.from('bookings').select('*').order('date').order('time');
+      setClients((c || []).map(dbToClient));
+      setBookings((b || []).map(dbToBooking));
+      setLoading(false);
+    }
+    loadData();
+  }, []);
   
   const [view, setView] = useState("dashboard");
   const [selectedDate, setSelectedDate] = useState(null);
@@ -388,7 +433,7 @@ export default function BokuAI() {
   const [calView, setCalView] = useState("month"); // "month" | "week" | "list"
   const [weekStart, setWeekStart] = useState(() => {
     // Start on Monday of current week
-    const d = new Date("2026-03-15");
+    const d = new Date("2026-03-16");
     const day = d.getDay();
     const diff = d.getDate() - (day === 0 ? 6 : day - 1);
     return new Date(d.getFullYear(), d.getMonth(), diff);
@@ -443,7 +488,7 @@ export default function BokuAI() {
   }, [dragState]);
   
   // New client form
-  const emptyClient = { firstName: "", lastName: "", phone: "", email: "", dogName: "", breed: "", size: "media", notes: "", mordace: false };
+  const emptyClient = { firstName: "", lastName: "", phone: "", email: "", petName: "", breed: "", animalType: "cane", size: "media", notes: "", mordace: false };
   const [newClientForm, setNewClientForm] = useState(emptyClient);
   
   // New booking form
@@ -460,7 +505,7 @@ export default function BokuAI() {
     const q = clientSearch.toLowerCase();
     return clients.filter(c =>
       `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
-      c.dogName.toLowerCase().includes(q) ||
+      c.petName.toLowerCase().includes(q) ||
       c.breed.toLowerCase().includes(q) ||
       c.phone.includes(q)
     ).slice(0, 8);
@@ -479,49 +524,64 @@ export default function BokuAI() {
     setShowModal("editBooking");
   };
 
-  const saveEditBooking = () => {
+  const saveEditBooking = async () => {
     if (!editBookingForm) return;
     const f = editBookingForm;
     const service = services.find(s => s.id === f.serviceId);
-    setBookings(prev => prev.map(b => b.id === f.id ? {
-      ...b,
+    const updates = {
       date: f.date, time: f.time,
+      service_id: f.serviceId, service_name: service?.name || f.serviceName,
+      price: Number(f.price), duration: Number(f.duration),
+      notes: f.notes, status: f.status, payment: f.payment,
+    };
+    await supabase.from('bookings').update(updates).eq('id', f.id);
+    setBookings(prev => prev.map(b => b.id === f.id ? {
+      ...b, date: f.date, time: f.time,
       serviceId: f.serviceId, serviceName: service?.name || b.serviceName,
       price: Number(f.price), duration: Number(f.duration),
-      notes: f.notes, status: f.status,
-      payment: f.payment,
+      notes: f.notes, status: f.status, payment: f.payment,
     } : b));
     setEditBookingForm(null);
     setShowModal(null);
   };
 
   // CRUD: Add client
-  const addClient = () => {
+  const addClient = async () => {
     const f = newClientForm;
-    if (!f.firstName || !f.lastName || !f.dogName) return;
+    if (!f.firstName || !f.lastName || !f.petName) return;
     const newC = {
       id: `c${Date.now()}`, firstName: f.firstName, lastName: f.lastName,
       phone: f.phone || "", email: f.email || `${f.firstName.toLowerCase()}.${f.lastName.toLowerCase()}@email.it`,
-      dogName: f.dogName, breed: f.breed || "Meticcio", size: f.size || "media",
+      animalType: f.animalType || "cane", petName: f.petName, breed: f.breed || "Meticcio", size: f.size || "media",
       notes: f.notes || "", registeredDate: new Date().toISOString().slice(0, 10),
       totalSpent: 0, visitCount: 0, lastVisit: null, loyaltyPoints: 0,
       preferredDay: "Lunedì", source: "online", rating: 5, mordace: f.mordace || false,
     };
+    await supabase.from('clients').insert({
+      id: newC.id, first_name: newC.firstName, last_name: newC.lastName,
+      phone: newC.phone, email: newC.email, animal_type: newC.animalType,
+      pet_name: newC.petName, breed: newC.breed, size: newC.size, notes: newC.notes,
+      registered_date: newC.registeredDate, total_spent: 0, visit_count: 0,
+      last_visit: null, loyalty_points: 0, preferred_day: newC.preferredDay,
+      source: newC.source, rating: newC.rating, mordace: newC.mordace,
+    });
     setClients(prev => [...prev, newC]);
     setNewClientForm(emptyClient);
     setShowModal(null);
   };
 
   // CRUD: Delete client
-  const deleteClient = (clientId) => {
+  const deleteClient = async (clientId) => {
     if (!confirm("Eliminare questo cliente e tutte le sue prenotazioni?")) return;
+    await supabase.from('bookings').delete().eq('client_id', clientId);
+    await supabase.from('clients').delete().eq('id', clientId);
     setClients(prev => prev.filter(c => c.id !== clientId));
     setBookings(prev => prev.filter(b => b.clientId !== clientId));
     setSelectedClient(null);
   };
 
   // CRUD: Add booking
-  const addBooking = () => {
+  const addBooking = async () => {
     const f = newBookingForm;
     if (!f.clientId || !f.serviceId || !f.date || !f.time) return;
     const client = clients.find(c => c.id === f.clientId);
@@ -531,18 +591,27 @@ export default function BokuAI() {
     const finalDuration = f.duration !== "" ? Number(f.duration) : service.duration;
     const newB = {
       id: `b${Date.now()}`, clientId: client.id, clientName: `${client.firstName} ${client.lastName}`,
-      dogName: client.dogName, breed: client.breed, serviceId: service.id, serviceName: service.name,
+      petName: client.petName, animalType: client.animalType || "cane", breed: client.breed, serviceId: service.id, serviceName: service.name,
       date: f.date, time: f.time, duration: finalDuration, price: finalPrice, cost: service.cost,
       status: "confermato", notes: f.notes || "", createdVia: "online", reminderSent: false, payment: f.payment || "",
     };
+    await supabase.from('bookings').insert({
+      id: newB.id, client_id: newB.clientId, client_name: newB.clientName,
+      pet_name: newB.petName, animal_type: newB.animalType, breed: newB.breed,
+      service_id: newB.serviceId, service_name: newB.serviceName,
+      date: newB.date, time: newB.time, duration: newB.duration,
+      price: newB.price, cost: newB.cost, status: newB.status,
+      notes: newB.notes, created_via: newB.createdVia, reminder_sent: false, payment: newB.payment,
+    });
     setBookings(prev => [...prev, newB].sort((a, b) => a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date)));
     setNewBookingForm({ clientId: "", date: f.date, time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
     setShowModal(null);
   };
 
   // CRUD: Delete booking
-  const deleteBooking = (bookingId) => {
+  const deleteBooking = async (bookingId) => {
     if (!confirm("Eliminare questa prenotazione?")) return;
+    await supabase.from('bookings').delete().eq('id', bookingId);
     setBookings(prev => prev.filter(b => b.id !== bookingId));
   };
 
@@ -552,18 +621,23 @@ export default function BokuAI() {
   const selectAllClients = (ids) => setSelectedClientIds(prev => prev.size === ids.length ? new Set() : new Set(ids));
   const selectAllBookings = (ids) => setSelectedBookingIds(prev => prev.size === ids.length ? new Set() : new Set(ids));
 
-  const bulkDeleteClients = () => {
+  const bulkDeleteClients = async () => {
     if (selectedClientIds.size === 0) return;
     if (!confirm(`Eliminare ${selectedClientIds.size} clienti e tutte le loro prenotazioni?`)) return;
+    const ids = [...selectedClientIds];
+    await supabase.from('bookings').delete().in('client_id', ids);
+    await supabase.from('clients').delete().in('id', ids);
     setClients(prev => prev.filter(c => !selectedClientIds.has(c.id)));
     setBookings(prev => prev.filter(b => !selectedClientIds.has(b.clientId)));
     setSelectedClientIds(new Set());
     setSelectedClient(null);
   };
 
-  const bulkDeleteBookings = () => {
+  const bulkDeleteBookings = async () => {
     if (selectedBookingIds.size === 0) return;
     if (!confirm(`Eliminare ${selectedBookingIds.size} prenotazioni?`)) return;
+    const ids = [...selectedBookingIds];
+    await supabase.from('bookings').delete().in('id', ids);
     setBookings(prev => prev.filter(b => !selectedBookingIds.has(b.id)));
     setSelectedBookingIds(new Set());
   };
@@ -595,6 +669,110 @@ export default function BokuAI() {
     });
   }, [bookings]);
 
+  // ============ BOTTOM-UP CLIENT-LEVEL FORECAST ============
+  const clientForecast = useMemo(() => {
+    const TODAY = new Date("2026-03-16");
+    const daysBetween = (a, b) => Math.round((b - a) / 86400000);
+    const completedBookings = bookings.filter(b => b.status === "completato");
+
+    // Per-client cycle analysis
+    const clientProfiles = clients.map(client => {
+      const cb = completedBookings
+        .filter(b => b.clientId === client.id)
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      if (cb.length === 0) return { ...client, cycle: null, confidence: "none", nextExpected: null, intervals: [], avgRevenue: 0 };
+
+      const dates = cb.map(b => new Date(b.date));
+      const avgRevenue = cb.reduce((s, b) => s + b.price, 0) / cb.length;
+
+      if (cb.length === 1) {
+        // Single visit — assume 45-day cycle (industry average), low confidence
+        const lastDate = dates[0];
+        const nextExpected = new Date(lastDate.getTime() + 45 * 86400000);
+        return { ...client, cycle: 45, stddev: 20, confidence: "low", nextExpected, lastVisitDate: lastDate, intervals: [], avgRevenue, visitDates: dates };
+      }
+
+      // Calculate intervals between consecutive visits
+      const intervals = [];
+      for (let i = 1; i < dates.length; i++) {
+        intervals.push(daysBetween(dates[i - 1], dates[i]));
+      }
+
+      const avgCycle = intervals.reduce((s, d) => s + d, 0) / intervals.length;
+      const variance = intervals.reduce((s, d) => s + Math.pow(d - avgCycle, 2), 0) / intervals.length;
+      const stddev = Math.sqrt(variance);
+      const cv = stddev / avgCycle; // coefficient of variation
+
+      const lastDate = dates[dates.length - 1];
+      const nextExpected = new Date(lastDate.getTime() + avgCycle * 86400000);
+
+      // Confidence based on visit count + regularity
+      let confidence;
+      if (cb.length >= 4 && cv < 0.3) confidence = "high";
+      else if (cb.length >= 3 && cv < 0.5) confidence = "high";
+      else if (cb.length >= 2) confidence = "medium";
+      else confidence = "low";
+
+      // Check churn risk: if > 2× cycle has passed without visit, likely churned
+      const daysSinceLast = daysBetween(lastDate, TODAY);
+      const churned = daysSinceLast > avgCycle * 2.5;
+      if (churned) confidence = "churned";
+
+      return { ...client, cycle: Math.round(avgCycle), stddev: Math.round(stddev), confidence, nextExpected, lastVisitDate: lastDate, intervals, avgRevenue, visitDates: dates, daysSinceLast, churned };
+    });
+
+    // Project each client's visits into future months
+    const monthBuckets = {};
+    const initMonth = (key) => { if (!monthBuckets[key]) monthBuckets[key] = { high: [], medium: [], low: [], newClients: 0, totalRev: 0 }; };
+
+    const forecastHorizon = 365; // 12 months max
+
+    clientProfiles.forEach(cp => {
+      if (!cp.cycle || cp.confidence === "none" || cp.confidence === "churned") return;
+
+      let nextDate = cp.nextExpected;
+      // If next expected is in the past, advance to next cycle
+      while (nextDate < TODAY) {
+        nextDate = new Date(nextDate.getTime() + cp.cycle * 86400000);
+      }
+
+      // Project multiple future visits within horizon
+      const endDate = new Date(TODAY.getTime() + forecastHorizon * 86400000);
+      while (nextDate <= endDate) {
+        const mKey = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
+        initMonth(mKey);
+        monthBuckets[mKey][cp.confidence].push({
+          clientId: cp.id,
+          clientName: `${cp.firstName} ${cp.lastName}`,
+          petName: cp.petName,
+          expectedDate: new Date(nextDate),
+          cycle: cp.cycle,
+          avgRevenue: cp.avgRevenue,
+        });
+        monthBuckets[mKey].totalRev += cp.avgRevenue;
+        nextDate = new Date(nextDate.getTime() + cp.cycle * 86400000);
+      }
+    });
+
+    // Estimate new client acquisition per month (based on historical rate)
+    const monthsWithData = 6;
+    const newClientsPerMonth = Math.round(clients.filter(c => c.registeredDate >= "2025-10-01").length / monthsWithData);
+    const avgNewClientRev = 35; // first-visit average
+
+    Object.keys(monthBuckets).forEach(k => {
+      monthBuckets[k].newClients = newClientsPerMonth;
+      monthBuckets[k].totalRev += newClientsPerMonth * avgNewClientRev;
+    });
+
+    // Summary stats
+    const activeClients = clientProfiles.filter(cp => cp.confidence === "high" || cp.confidence === "medium");
+    const churnedClients = clientProfiles.filter(cp => cp.confidence === "churned");
+    const avgCycleAll = activeClients.length ? Math.round(activeClients.reduce((s, c) => s + (c.cycle || 0), 0) / activeClients.length) : 0;
+
+    return { clientProfiles, monthBuckets, newClientsPerMonth, avgCycleAll, activeClients, churnedClients };
+  }, [clients, bookings]);
+
   // Dashboard extended: 6 actual + 2 forecast months
   const dashboardChartData = useMemo(() => {
     const fcKeys = ["2026-04","2026-05"];
@@ -611,7 +789,7 @@ export default function BokuAI() {
   }, [monthlyData, clientForecast, bookings]);
 
   // Today's bookings
-  const todayStr = "2026-03-15";
+  const todayStr = "2026-03-16";
   const todayBookings = useMemo(() => bookings.filter(b => b.date === todayStr).sort((a, b) => a.time.localeCompare(b.time)), [bookings]);
 
   const serviceStats = useMemo(() => {
@@ -644,110 +822,6 @@ export default function BokuAI() {
       { title: "📅 Q2 2026 Forecast", text: `Margine operativo attuale: ${marginPct.toFixed(1)}%. Primavera = +15% domanda anti-muta. Previsione Q2: fatturato €${Math.round(revenueThis * 3.15)}, margine €${Math.round(profitThis * 3.2)}. Consiglio: +25% scorte shampoo anti-muta e operatore part-time il sabato.`, tags: [{ label: `Margine ${marginPct.toFixed(0)}%`, type: "revenue" }, { label: "Pianifica scorte", type: "action" }] },
     ];
   }, [serviceStats, hourlyDist, revenueThis, revenueLast, profitThis, completedThis, completedLast, clients]);
-
-  // ============ BOTTOM-UP CLIENT-LEVEL FORECAST ============
-  const clientForecast = useMemo(() => {
-    const TODAY = new Date("2026-03-15");
-    const daysBetween = (a, b) => Math.round((b - a) / 86400000);
-    const completedBookings = bookings.filter(b => b.status === "completato");
-    
-    // Per-client cycle analysis
-    const clientProfiles = clients.map(client => {
-      const cb = completedBookings
-        .filter(b => b.clientId === client.id)
-        .sort((a, b) => a.date.localeCompare(b.date));
-      
-      if (cb.length === 0) return { ...client, cycle: null, confidence: "none", nextExpected: null, intervals: [], avgRevenue: 0 };
-      
-      const dates = cb.map(b => new Date(b.date));
-      const avgRevenue = cb.reduce((s, b) => s + b.price, 0) / cb.length;
-      
-      if (cb.length === 1) {
-        // Single visit — assume 45-day cycle (industry average), low confidence
-        const lastDate = dates[0];
-        const nextExpected = new Date(lastDate.getTime() + 45 * 86400000);
-        return { ...client, cycle: 45, stddev: 20, confidence: "low", nextExpected, lastVisitDate: lastDate, intervals: [], avgRevenue, visitDates: dates };
-      }
-      
-      // Calculate intervals between consecutive visits
-      const intervals = [];
-      for (let i = 1; i < dates.length; i++) {
-        intervals.push(daysBetween(dates[i - 1], dates[i]));
-      }
-      
-      const avgCycle = intervals.reduce((s, d) => s + d, 0) / intervals.length;
-      const variance = intervals.reduce((s, d) => s + Math.pow(d - avgCycle, 2), 0) / intervals.length;
-      const stddev = Math.sqrt(variance);
-      const cv = stddev / avgCycle; // coefficient of variation
-      
-      const lastDate = dates[dates.length - 1];
-      const nextExpected = new Date(lastDate.getTime() + avgCycle * 86400000);
-      
-      // Confidence based on visit count + regularity
-      let confidence;
-      if (cb.length >= 4 && cv < 0.3) confidence = "high";
-      else if (cb.length >= 3 && cv < 0.5) confidence = "high";
-      else if (cb.length >= 2) confidence = "medium";
-      else confidence = "low";
-      
-      // Check churn risk: if > 2× cycle has passed without visit, likely churned
-      const daysSinceLast = daysBetween(lastDate, TODAY);
-      const churned = daysSinceLast > avgCycle * 2.5;
-      if (churned) confidence = "churned";
-      
-      return { ...client, cycle: Math.round(avgCycle), stddev: Math.round(stddev), confidence, nextExpected, lastVisitDate: lastDate, intervals, avgRevenue, visitDates: dates, daysSinceLast, churned };
-    });
-    
-    // Project each client's visits into future months
-    const monthBuckets = {};
-    const initMonth = (key) => { if (!monthBuckets[key]) monthBuckets[key] = { high: [], medium: [], low: [], newClients: 0, totalRev: 0 }; };
-    
-    const forecastHorizon = 365; // 12 months max
-    
-    clientProfiles.forEach(cp => {
-      if (!cp.cycle || cp.confidence === "none" || cp.confidence === "churned") return;
-      
-      let nextDate = cp.nextExpected;
-      // If next expected is in the past, advance to next cycle
-      while (nextDate < TODAY) {
-        nextDate = new Date(nextDate.getTime() + cp.cycle * 86400000);
-      }
-      
-      // Project multiple future visits within horizon
-      const endDate = new Date(TODAY.getTime() + forecastHorizon * 86400000);
-      while (nextDate <= endDate) {
-        const mKey = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, "0")}`;
-        initMonth(mKey);
-        monthBuckets[mKey][cp.confidence].push({
-          clientId: cp.id,
-          clientName: `${cp.firstName} ${cp.lastName}`,
-          dogName: cp.dogName,
-          expectedDate: new Date(nextDate),
-          cycle: cp.cycle,
-          avgRevenue: cp.avgRevenue,
-        });
-        monthBuckets[mKey].totalRev += cp.avgRevenue;
-        nextDate = new Date(nextDate.getTime() + cp.cycle * 86400000);
-      }
-    });
-    
-    // Estimate new client acquisition per month (based on historical rate)
-    const monthsWithData = 6;
-    const newClientsPerMonth = Math.round(clients.filter(c => c.registeredDate >= "2025-10-01").length / monthsWithData);
-    const avgNewClientRev = 35; // first-visit average
-    
-    Object.keys(monthBuckets).forEach(k => {
-      monthBuckets[k].newClients = newClientsPerMonth;
-      monthBuckets[k].totalRev += newClientsPerMonth * avgNewClientRev;
-    });
-    
-    // Summary stats
-    const activeClients = clientProfiles.filter(cp => cp.confidence === "high" || cp.confidence === "medium");
-    const churnedClients = clientProfiles.filter(cp => cp.confidence === "churned");
-    const avgCycleAll = activeClients.length ? Math.round(activeClients.reduce((s, c) => s + (c.cycle || 0), 0) / activeClients.length) : 0;
-    
-    return { clientProfiles, monthBuckets, newClientsPerMonth, avgCycleAll, activeClients, churnedClients };
-  }, [clients, bookings]);
 
   // Build forecastData (table) from client-level forecast
   const forecastData = useMemo(() => {
@@ -843,7 +917,7 @@ export default function BokuAI() {
   const isToday = (day, month) => day === today.getDate() && month === today.getMonth() && calYear === today.getFullYear();
   const dayBookings = useMemo(() => selectedDate ? bookings.filter(b => b.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time)) : [], [bookings, selectedDate]);
   const filteredClients = useMemo(() => {
-    const list = clientFilter ? clients.filter(c => `${c.firstName} ${c.lastName} ${c.dogName} ${c.breed} ${c.phone}`.toLowerCase().includes(clientFilter.toLowerCase())) : clients;
+    const list = clientFilter ? clients.filter(c => `${c.firstName} ${c.lastName} ${c.petName} ${c.breed} ${c.phone}`.toLowerCase().includes(clientFilter.toLowerCase())) : clients;
     return [...list].sort((a, b) => b.visitCount - a.visitCount);
   }, [clients, clientFilter]);
 
@@ -870,6 +944,14 @@ export default function BokuAI() {
     { id: "forecast", icon: "brain", label: "Forecast" },
     { id: "whatsapp", icon: "whatsapp", label: "WhatsApp" },
   ];
+
+  if (loading) return (
+    <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0B1120", color: "#94A3B8", fontFamily: "Outfit, sans-serif", flexDirection: "column", gap: 16 }}>
+      <div style={{ width: 40, height: 40, border: "3px solid #1A2332", borderTop: "3px solid #6EE7B7", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <span style={{ fontSize: 14 }}>Caricamento dati...</span>
+    </div>
+  );
 
   return (
     <>
@@ -945,7 +1027,7 @@ export default function BokuAI() {
 
                 {/* TODAY'S RECAP */}
                 <div className="card">
-                  <div className="card-header"><h3>Recap Oggi — 15 Marzo</h3><span className="badge" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>{todayBookings.length} appuntamenti</span></div>
+                  <div className="card-header"><h3>Recap Oggi — 16 Marzo</h3><span className="badge" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>{todayBookings.length} appuntamenti</span></div>
                   {todayBookings.length === 0 ? (
                     <div style={{ textAlign: "center", padding: 20, color: "var(--text-muted)", fontSize: 13 }}>Nessun appuntamento per oggi</div>
                   ) : (<>
@@ -969,7 +1051,7 @@ export default function BokuAI() {
                           <div style={{ fontWeight: 700, fontSize: 13, color: "var(--accent)", minWidth: 42 }}>{b.time}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {b.dogName} {clients.find(c => c.id === b.clientId)?.mordace ? "🦷" : ""}
+                              {b.petName} {clients.find(c => c.id === b.clientId)?.mordace ? "🦷" : ""}
                             </div>
                             <div style={{ fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.clientName} • {b.serviceName}</div>
                           </div>
@@ -996,13 +1078,31 @@ export default function BokuAI() {
                 </div>
                 <div className="card">
                   <div className="card-header"><h3>Top 5 Clienti</h3></div>
-                  {topClients.slice(0, 5).map((c, i) => (
-                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < 4 ? "1px solid var(--border)" : "none" }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: ["var(--accent-dim)","var(--purple-dim)","var(--orange-dim)","var(--blue-dim)","var(--danger-dim)"][i], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: ["var(--accent)","var(--purple)","var(--orange)","var(--blue)","var(--danger)"][i] }}>{c.firstName[0]}{c.lastName[0]}</div>
-                      <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>{c.firstName} {c.lastName}</div><div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.dogName} • {c.visitCount} visite</div></div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: "var(--accent)" }}>€{c.totalSpent}</div>
-                    </div>
-                  ))}
+                  {topClients.slice(0, 5).map((c, i) => {
+                    const colors = ["var(--accent)","var(--purple)","var(--orange)","var(--blue)","var(--danger)"];
+                    const dimColors = ["var(--accent-dim)","var(--purple-dim)","var(--orange-dim)","var(--blue-dim)","var(--danger-dim)"];
+                    const color = colors[i];
+                    const avgSpend = c.visitCount > 0 ? Math.round(c.totalSpent / c.visitCount) : 0;
+                    const profile = clientForecast.clientProfiles.find(p => p.id === c.id);
+                    const cycle = profile?.cycle ?? null;
+                    return (
+                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < 4 ? "1px solid var(--border)" : "none" }}>
+                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: dimColors[i], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color, flexShrink: 0 }}>{c.firstName[0]}{c.lastName[0]}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)" }}>• {c.petName}</span></div>
+                          <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20, background: "var(--bg3)", color: "var(--text-dim)" }}>{c.visitCount} visite</span>
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20, background: "var(--accent-dim)", color: "var(--accent)" }}>€{avgSpend}/visita</span>
+                            {cycle && <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20, background: "var(--purple-dim)", color: "var(--purple)" }}>ogni ~{cycle}gg</span>}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 15, color }}>{`€${c.totalSpent}`}</div>
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>totale</div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               <div className="card" style={{ marginBottom: 0 }}>
@@ -1041,7 +1141,7 @@ export default function BokuAI() {
                     {weekStart.toLocaleDateString("it-IT", { day: "numeric", month: "short" })} — {new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                   <button className="btn btn-sm" onClick={() => setWeekStart(d => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7))}><Icon name="right" size={14} /></button>
-                  <button className="btn btn-sm" onClick={() => { const d = new Date("2026-03-15"); const day = d.getDay(); setWeekStart(new Date(d.getFullYear(), d.getMonth(), d.getDate() - (day === 0 ? 6 : day - 1))); }}>Oggi</button>
+                  <button className="btn btn-sm" onClick={() => { const d = new Date("2026-03-16"); const day = d.getDay(); setWeekStart(new Date(d.getFullYear(), d.getMonth(), d.getDate() - (day === 0 ? 6 : day - 1))); }}>Oggi</button>
                 </>)}
                 <button className="btn btn-primary" onClick={() => setShowModal("new")}><Icon name="plus" size={16} /> Prenota</button>
               </div>
@@ -1059,7 +1159,7 @@ export default function BokuAI() {
                         return (
                           <div key={i} className={`cal-cell ${d.other ? "other-month" : ""} ${isToday(d.day, d.month) ? "today" : ""}`} onClick={() => { if (!d.other) { setSelectedDate(ds); setNewBookingForm(f => ({ ...f, date: ds })); } }}>
                             <div className="cal-day">{d.day}</div>
-                            {db.slice(0, 3).map(b => <div key={b.id} className={`cal-booking ${b.status}`}>{b.time} {b.dogName}</div>)}
+                            {db.slice(0, 3).map(b => { const ac = ANIMAL_COLORS[b.animalType] || ANIMAL_COLORS.altro; return <div key={b.id} className={`cal-booking ${b.status}`} style={{ background: ac.bg, color: ac.text }}>{ac.emoji} {b.time} {b.petName}</div>; })}
                             {db.length > 3 && <div className="cal-more">+{db.length - 3} altri</div>}
                           </div>
                         );
@@ -1086,7 +1186,7 @@ export default function BokuAI() {
                             {dayBookings.map(b => (
                               <div key={b.id} style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--bg3)", cursor: "pointer" }} onClick={() => openEditBooking(b)}>
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ fontWeight: 600, fontSize: 13 }}>{b.time}</span><div style={{ display: "flex", gap: 6, alignItems: "center" }}><span className={`status-badge ${b.status}`}>{b.status}</span><button onClick={(e) => { e.stopPropagation(); deleteBooking(b.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--danger)", padding: 2, display: "flex" }}><Icon name="x" size={14} /></button></div></div>
-                                <div style={{ fontSize: 13, fontWeight: 500 }}>{b.dogName} ({b.breed})</div>
+                                <div style={{ fontSize: 13, fontWeight: 500 }}>{b.petName} ({b.breed})</div>
                                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{b.clientName} • {b.serviceName}</div>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
                                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}><Icon name="clock" size={12} /> {b.duration}min</span>
@@ -1113,12 +1213,21 @@ export default function BokuAI() {
                 const SLOTS = (END_HOUR - START_HOUR) * 2; // 22 half-hour slots
                 const weekDays = Array.from({ length: 7 }, (_, i) => {
                   const d = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
-                  return { date: d, dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, dayName: ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][d.getDay()], dayNum: d.getDate(), isToday: d.toDateString() === new Date("2026-03-15").toDateString() };
+                  return { date: d, dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, dayName: ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][d.getDay()], dayNum: d.getDate(), isToday: d.toDateString() === new Date("2026-03-16").toDateString() };
                 });
                 const statusColors = { completato: { bg: "var(--success-dim)", border: "var(--success)", text: "var(--success)" }, confermato: { bg: "var(--blue-dim)", border: "var(--blue)", text: "var(--blue)" }, "in-attesa": { bg: "var(--warning-dim)", border: "var(--warning)", text: "var(--warning)" }, cancellato: { bg: "var(--danger-dim)", border: "var(--danger)", text: "var(--danger)" }, "no-show": { bg: "var(--purple-dim)", border: "var(--purple)", text: "var(--purple)" } };
                 
                 return (
                   <div style={{ overflowY: "auto", maxHeight: "calc(100vh - 140px)" }}>
+                    {/* Animal type legend */}
+                    <div style={{ display: "flex", gap: 12, padding: "8px 16px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" }}>
+                      {Object.entries(ANIMAL_COLORS).map(([type, c]) => (
+                        <span key={type} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: c.text }}>
+                          <span style={{ width: 8, height: 8, borderRadius: 2, background: c.border, display: "inline-block" }} />
+                          {c.emoji} {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </span>
+                      ))}
+                    </div>
                     <div className="week-grid">
                       {/* Header row */}
                       <div className="week-header-cell" style={{ borderLeft: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1175,27 +1284,52 @@ export default function BokuAI() {
                               </div>
                             )}
 
-                            {/* Booking blocks overlaid */}
-                            {dayBookingsW.map(b => {
-                              const [bh, bm] = b.time.split(":").map(Number);
-                              const startMin = (bh - START_HOUR) * 60 + bm;
-                              if (startMin < 0) return null;
-                              const topPx = (startMin / 30) * SLOT_H;
-                              const heightPx = Math.max((b.duration / 30) * SLOT_H - 2, SLOT_H - 2);
-                              const sc = statusColors[b.status] || statusColors.confermato;
-                              return (
-                                <div key={b.id} className="week-booking-block"
-                                  style={{ top: topPx, height: heightPx, background: sc.bg, borderLeftColor: sc.border, color: sc.text }}
-                                  title={`${b.time} - ${b.clientName}\n${b.dogName} • ${b.serviceName}\n${b.duration}min • €${b.price}${b.payment ? "\nPagamento: " + b.payment : ""}`}
-                                  onClick={(e) => { e.stopPropagation(); openEditBooking(b); }}
-                                >
-                                  <div className="wb-time">{b.time}{b.payment && <span style={{ marginLeft: 4, opacity: 0.7 }}>{b.payment === "pos" ? "💳" : b.payment === "contanti" ? "💵" : "📝"}</span>}</div>
-                                  <div className="wb-name">{b.dogName}</div>
-                                  {heightPx > 50 && <div className="wb-service">{b.serviceName}</div>}
-                                  {heightPx > 70 && <div style={{ fontSize: 10, marginTop: 2 }}>{b.clientName} • €{b.price}</div>}
-                                </div>
-                              );
-                            })}
+                            {/* Booking blocks overlaid — with overlap column layout */}
+                            {(() => {
+                              // Compute start/end in minutes for each booking
+                              const withTimes = dayBookingsW.map(b => {
+                                const [bh, bm] = b.time.split(":").map(Number);
+                                const start = (bh - START_HOUR) * 60 + bm;
+                                return { ...b, _start: start, _end: start + b.duration };
+                              }).filter(b => b._start >= 0).sort((a, b) => a._start - b._start);
+
+                              // Assign a column index to each booking (first free column)
+                              const colEnds = [];
+                              const withCols = withTimes.map(b => {
+                                let col = colEnds.findIndex(e => e <= b._start);
+                                if (col === -1) { col = colEnds.length; colEnds.push(b._end); }
+                                else colEnds[col] = b._end;
+                                return { ...b, col };
+                              });
+
+                              // Compute total columns in each overlap group
+                              const withTotal = withCols.map(b => {
+                                const overlapping = withCols.filter(o => o._start < b._end && o._end > b._start);
+                                const totalCols = Math.max(...overlapping.map(o => o.col)) + 1;
+                                return { ...b, totalCols };
+                              });
+
+                              return withTotal.map(b => {
+                                const topPx = (b._start / 30) * SLOT_H;
+                                const heightPx = Math.max((b.duration / 30) * SLOT_H - 2, SLOT_H - 2);
+                                const ac = ANIMAL_COLORS[b.animalType] || ANIMAL_COLORS.altro;
+                                const cancelled = b.status === "cancellato" || b.status === "no-show";
+                                const colW = 100 / b.totalCols;
+                                const leftPct = b.col * colW;
+                                return (
+                                  <div key={b.id} className="week-booking-block"
+                                    style={{ top: topPx, height: heightPx, background: ac.bg, borderLeftColor: ac.border, color: ac.text, left: `calc(${leftPct}% + 2px)`, width: `calc(${colW}% - 4px)`, opacity: cancelled ? 0.45 : 1 }}
+                                    title={`${b.time} - ${b.clientName}\n${b.petName} • ${b.serviceName}\n${b.duration}min • €${b.price}${b.payment ? "\nPagamento: " + b.payment : ""}`}
+                                    onClick={(e) => { e.stopPropagation(); openEditBooking(b); }}
+                                  >
+                                    <div className="wb-time">{b.time}{b.payment && <span style={{ marginLeft: 4, opacity: 0.7 }}>{b.payment === "pos" ? "💳" : b.payment === "contanti" ? "💵" : "📝"}</span>}</div>
+                                    <div className="wb-name">{(ANIMAL_COLORS[b.animalType]?.emoji || "🐾")} {b.petName}</div>
+                                    {heightPx > 50 && <div className="wb-service">{b.serviceName}</div>}
+                                    {heightPx > 70 && <div style={{ fontSize: 10, marginTop: 2 }}>{b.clientName} • €{b.price}</div>}
+                                  </div>
+                                );
+                              });
+                            })()}
 
                             {/* Now line */}
                             {wd.isToday && (() => {
@@ -1235,7 +1369,7 @@ export default function BokuAI() {
                             <td style={{ fontWeight: 500 }} onClick={() => openEditBooking(b)}>{b.date}</td>
                             <td onClick={() => openEditBooking(b)}>{b.time}</td>
                             <td onClick={() => openEditBooking(b)}>{b.clientName}</td>
-                            <td onClick={() => openEditBooking(b)}>{b.dogName}</td>
+                            <td onClick={() => openEditBooking(b)}>{b.petName}</td>
                             <td onClick={() => openEditBooking(b)} style={{ fontSize: 12 }}>{b.serviceName}</td>
                             <td onClick={() => openEditBooking(b)}><span className={`status-badge ${b.status}`}>{b.status}</span></td>
                             <td onClick={() => openEditBooking(b)}>{b.payment ? <span className="pill" style={{ background: b.payment === "pos" ? "var(--blue-dim)" : b.payment === "contanti" ? "var(--success-dim)" : "var(--purple-dim)", color: b.payment === "pos" ? "var(--blue)" : b.payment === "contanti" ? "var(--success)" : "var(--purple)", fontSize: 10 }}>{b.payment === "pos" ? "POS" : b.payment === "contanti" ? "Cash" : b.payment}</span> : <span style={{ fontSize: 11, color: "var(--text-muted)" }}>—</span>}</td>
@@ -1272,7 +1406,7 @@ export default function BokuAI() {
                     <div className="card">
                       <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{selectedClient.firstName} {selectedClient.lastName}</h3>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                        {[["Telefono", selectedClient.phone],["Email", selectedClient.email],["Cane", selectedClient.dogName],["Razza", selectedClient.breed],["Taglia", selectedClient.size],["Canale", null],["Giorno Pref.", selectedClient.preferredDay],["Registrato", selectedClient.registeredDate]].map(([l, v], i) => (
+                        {[["Telefono", selectedClient.phone],["Email", selectedClient.email],[(ANIMAL_COLORS[selectedClient.animalType]?.emoji || "🐾") + " Animale", selectedClient.petName],["Specie", selectedClient.animalType],["Razza", selectedClient.breed],["Taglia", selectedClient.size],["Canale", null],["Giorno Pref.", selectedClient.preferredDay],["Registrato", selectedClient.registeredDate]].map(([l, v], i) => (
                           <div key={i}><label>{l}</label>{i === 5 ? <SourcePill source={selectedClient.source} /> : <div style={{ fontSize: 13, textTransform: i === 4 ? "capitalize" : "none" }}>{v}</div>}</div>
                         ))}
                       </div>
@@ -1280,7 +1414,7 @@ export default function BokuAI() {
                       {selectedClient.mordace && <div style={{ marginTop: 10, padding: "10px 14px", background: "var(--danger-dim)", borderRadius: 8, fontSize: 13, color: "var(--danger)", display: "flex", alignItems: "center", gap: 8 }}>🦷 Cane mordace — maneggiare con cautela</div>}
                       <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
                         <label style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                          <input type="checkbox" checked={!!selectedClient.mordace} onChange={e => { const val = e.target.checked; setClients(prev => prev.map(c => c.id === selectedClient.id ? { ...c, mordace: val } : c)); setSelectedClient(sc => ({ ...sc, mordace: val })); }} style={{ width: 18, height: 18, accentColor: "var(--danger)", cursor: "pointer" }} />
+                          <input type="checkbox" checked={!!selectedClient.mordace} onChange={async e => { const val = e.target.checked; await supabase.from('clients').update({ mordace: val }).eq('id', selectedClient.id); setClients(prev => prev.map(c => c.id === selectedClient.id ? { ...c, mordace: val } : c)); setSelectedClient(sc => ({ ...sc, mordace: val })); }} style={{ width: 18, height: 18, accentColor: "var(--danger)", cursor: "pointer" }} />
                           <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Cane mordace</span>
                         </label>
                       </div>
@@ -1441,7 +1575,7 @@ export default function BokuAI() {
                       return (
                       <tr key={c.id} style={{ cursor: "pointer", background: selectedClientIds.has(c.id) ? "var(--danger-dim)" : undefined }}>
                         <td style={{ textAlign: "center" }} onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedClientIds.has(c.id)} onChange={() => toggleClientSelect(c.id)} style={{ width: 16, height: 16, accentColor: "var(--accent)", cursor: "pointer" }} /></td>
-                        <td style={{ fontWeight: 500 }} onClick={() => setSelectedClient(c)}>{c.firstName} {c.lastName}</td><td onClick={() => setSelectedClient(c)}>{c.dogName}</td><td onClick={() => setSelectedClient(c)}>{c.breed}</td><td onClick={() => setSelectedClient(c)} style={{ textTransform: "capitalize" }}>{c.size}</td>
+                        <td style={{ fontWeight: 500 }} onClick={() => setSelectedClient(c)}>{c.firstName} {c.lastName}</td><td onClick={() => setSelectedClient(c)}>{c.petName}</td><td onClick={() => setSelectedClient(c)}>{c.breed}</td><td onClick={() => setSelectedClient(c)} style={{ textTransform: "capitalize" }}>{c.size}</td>
                         <td onClick={() => setSelectedClient(c)}><span style={{ fontWeight: 700 }}>{c.visitCount}</span></td>
                         <td onClick={() => setSelectedClient(c)} style={{ fontWeight: 600 }}>{cycle ? `${cycle}gg` : "—"}</td>
                         <td onClick={() => setSelectedClient(c)}><span className="status-badge" style={{ background: statusBg, color: statusColor }}>{statusLabel}</span></td>
@@ -1928,7 +2062,7 @@ export default function BokuAI() {
                     <div className="client-picker-selected">
                       <div className="cps-info">
                         <div className="cps-name">{selectedClientForBooking.firstName} {selectedClientForBooking.lastName}</div>
-                        <div className="cps-detail">{selectedClientForBooking.dogName} ({selectedClientForBooking.breed}) • {selectedClientForBooking.phone}</div>
+                        <div className="cps-detail">{selectedClientForBooking.petName} ({selectedClientForBooking.breed}) • {selectedClientForBooking.phone}</div>
                       </div>
                       <button className="cps-clear" onClick={() => { setNewBookingForm(f => ({ ...f, clientId: "" })); setClientSearch(""); }}><Icon name="x" size={16} /></button>
                     </div>
@@ -1951,7 +2085,7 @@ export default function BokuAI() {
                           <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--accent-dim)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "var(--accent)", flexShrink: 0 }}>{c.firstName[0]}{c.lastName[0]}</div>
                           <div>
                             <div className="cpi-name">{c.firstName} {c.lastName}</div>
-                            <div className="cpi-dog">{c.dogName} <span className="cpi-breed">• {c.breed} • {c.size}</span></div>
+                            <div className="cpi-dog">{c.petName} <span className="cpi-breed">• {c.breed} • {c.size}</span></div>
                           </div>
                         </div>
                       )) : (
@@ -2023,7 +2157,7 @@ export default function BokuAI() {
               </div>
               <div style={{ padding: "10px 14px", background: "var(--bg3)", borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
                 <span style={{ fontWeight: 600 }}>{clients.find(c => c.id === editBookingForm.clientId)?.firstName} {clients.find(c => c.id === editBookingForm.clientId)?.lastName}</span>
-                <span style={{ color: "var(--text-muted)" }}> — {clients.find(c => c.id === editBookingForm.clientId)?.dogName}</span>
+                <span style={{ color: "var(--text-muted)" }}> — {clients.find(c => c.id === editBookingForm.clientId)?.petName}</span>
               </div>
               <div className="form-row">
                 <div><label>Data</label><input type="date" value={editBookingForm.date} onChange={e => setEditBookingForm(f => ({ ...f, date: e.target.value }))} /></div>
@@ -2089,8 +2223,8 @@ export default function BokuAI() {
                 <div><label>Email</label><input placeholder="marco.rossi@email.it" value={newClientForm.email} onChange={e => setNewClientForm(f => ({ ...f, email: e.target.value }))} /></div>
               </div>
               <div className="form-row">
-                <div><label>Nome Cane *</label><input placeholder="Luna" value={newClientForm.dogName} onChange={e => setNewClientForm(f => ({ ...f, dogName: e.target.value }))} /></div>
-                <div><label>Razza</label><input placeholder="Golden Retriever" value={newClientForm.breed} onChange={e => setNewClientForm(f => ({ ...f, breed: e.target.value }))} /></div>
+                <div><label>Tipo Animale</label><select value={newClientForm.animalType} onChange={e => setNewClientForm(f => ({ ...f, animalType: e.target.value }))}><option value="cane">🐕 Cane</option><option value="gatto">🐈 Gatto</option><option value="coniglio">🐇 Coniglio</option><option value="uccello">🦜 Uccello</option><option value="rettile">🦎 Rettile</option><option value="altro">🐾 Altro</option></select></div>
+                <div><label>Nome Animale *</label><input placeholder="Luna" value={newClientForm.petName} onChange={e => setNewClientForm(f => ({ ...f, petName: e.target.value }))} /></div>
               </div>
               <div className="form-row">
                 <div><label>Taglia</label>
@@ -2110,7 +2244,7 @@ export default function BokuAI() {
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
                 <button className="btn" onClick={() => { setNewClientForm(emptyClient); setShowModal(null); }}>Annulla</button>
-                <button className="btn btn-primary" onClick={addClient} disabled={!newClientForm.firstName || !newClientForm.lastName || !newClientForm.dogName}><Icon name="check" size={14} /> Salva Cliente</button>
+                <button className="btn btn-primary" onClick={addClient} disabled={!newClientForm.firstName || !newClientForm.lastName || !newClientForm.petName}><Icon name="check" size={14} /> Salva Cliente</button>
               </div>
             </div>
           </div>
@@ -2134,8 +2268,8 @@ export default function BokuAI() {
                 <div><label>Email</label><input placeholder="marco@email.it" value={newClientForm.email} onChange={e => setNewClientForm(f => ({ ...f, email: e.target.value }))} /></div>
               </div>
               <div className="form-row">
-                <div><label>Nome Cane *</label><input placeholder="Luna" value={newClientForm.dogName} onChange={e => setNewClientForm(f => ({ ...f, dogName: e.target.value }))} /></div>
-                <div><label>Razza</label><input placeholder="Golden Retriever" value={newClientForm.breed} onChange={e => setNewClientForm(f => ({ ...f, breed: e.target.value }))} /></div>
+                <div><label>Tipo Animale</label><select value={newClientForm.animalType} onChange={e => setNewClientForm(f => ({ ...f, animalType: e.target.value }))}><option value="cane">🐕 Cane</option><option value="gatto">🐈 Gatto</option><option value="coniglio">🐇 Coniglio</option><option value="uccello">🦜 Uccello</option><option value="rettile">🦎 Rettile</option><option value="altro">🐾 Altro</option></select></div>
+                <div><label>Nome Animale *</label><input placeholder="Luna" value={newClientForm.petName} onChange={e => setNewClientForm(f => ({ ...f, petName: e.target.value }))} /></div>
               </div>
               <div className="form-row">
                 <div><label>Taglia</label>
@@ -2153,13 +2287,13 @@ export default function BokuAI() {
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
                 <button className="btn" onClick={() => { setShowModal("new"); setNewClientForm(emptyClient); }}>Annulla</button>
-                <button className="btn btn-primary" disabled={!newClientForm.firstName || !newClientForm.lastName || !newClientForm.dogName} onClick={() => {
+                <button className="btn btn-primary" disabled={!newClientForm.firstName || !newClientForm.lastName || !newClientForm.petName} onClick={() => {
                   const f = newClientForm;
                   const newId = `c${Date.now()}`;
                   const newC = {
                     id: newId, firstName: f.firstName, lastName: f.lastName,
                     phone: f.phone || "", email: f.email || `${f.firstName.toLowerCase()}.${f.lastName.toLowerCase()}@email.it`,
-                    dogName: f.dogName, breed: f.breed || "Meticcio", size: f.size || "media",
+                    petName: f.petName, breed: f.breed || "Meticcio", size: f.size || "media",
                     notes: f.notes || "", registeredDate: new Date().toISOString().slice(0, 10),
                     totalSpent: 0, visitCount: 0, lastVisit: null, loyaltyPoints: 0,
                     preferredDay: "Lunedì", source: "online", rating: 5, mordace: f.mordace || false,
