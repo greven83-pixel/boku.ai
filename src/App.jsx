@@ -647,19 +647,31 @@ export default function BokuAI() {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const raw = XLSX.utils.sheet_to_json(ws, { defval: "" });
       const norm = (s) => String(s).toLowerCase().trim().replace(/[\s_]/g, "");
-      const map = (row, keys) => { for (const k of keys) { const v = row[Object.keys(row).find(rk => norm(rk) === norm(k)) || ""]; if (v !== undefined && String(v).trim()) return String(v).trim(); } return ""; };
-      const parsed = raw.map(row => ({
-        firstName: map(row, ["nome","firstname","first_name","nome*"]),
-        lastName: map(row, ["cognome","lastname","last_name","surname","cognome*"]),
-        phone: map(row, ["telefono","phone","tel","cellulare"]),
-        email: map(row, ["email","mail","e-mail"]),
-        petName: map(row, ["nomeanimale","animale","pet","petname","pet_name","nomepet"]),
-        animalType: (map(row, ["tipoanimale","specie","animaltype","animal_type","tipo"]) || "cane").toLowerCase(),
-        breed: map(row, ["razza","breed"]),
-        size: (map(row, ["taglia","size"]) || "media").toLowerCase(),
-        notes: map(row, ["note","notes","annotazioni"]),
-      })).filter(r => r.firstName && r.lastName);
-      setImportRows(parsed);
+      const col = (row, keys) => { for (const k of keys) { const v = row[Object.keys(row).find(rk => norm(rk) === norm(k)) || ""]; if (v !== undefined && String(v).trim()) return String(v).trim(); } return ""; };
+
+      // Raggruppa righe per cliente (stessa persona = stessa chiave)
+      const clientMap = new Map();
+      raw.forEach(row => {
+        const firstName = col(row, ["nome","firstname","first_name","nome*"]);
+        const lastName = col(row, ["cognome","lastname","last_name","surname","cognome*"]);
+        if (!firstName || !lastName) return;
+        const phone = col(row, ["telefono","phone","tel","cellulare"]);
+        const email = col(row, ["email","mail","e-mail"]);
+        const key = phone || email || `${firstName.toLowerCase()}_${lastName.toLowerCase()}`;
+        if (!clientMap.has(key)) {
+          clientMap.set(key, { firstName, lastName, phone, email, notes: col(row, ["note","notes","annotazioni"]), pets: [] });
+        }
+        const petName = col(row, ["nomeanimale","animale","pet","petname","pet_name","nomepet"]);
+        if (petName) {
+          clientMap.get(key).pets.push({
+            name: petName,
+            animalType: (col(row, ["tipoanimale","specie","animaltype","animal_type","tipo"]) || "cane").toLowerCase(),
+            breed: col(row, ["razza","breed"]) || "Meticcio",
+            size: (col(row, ["taglia","size"]) || "media").toLowerCase(),
+          });
+        }
+      });
+      setImportRows(Array.from(clientMap.values()));
     };
     reader.readAsArrayBuffer(file);
   };
@@ -677,11 +689,13 @@ export default function BokuAI() {
       totalSpent: 0, visitCount: 0, lastVisit: null, loyaltyPoints: 0,
       preferredDay: "Lunedì", source: "import", rating: 5,
     }));
-    const newPets = importRows.map((r, i) => ({
-      id: `p_${newClients[i].id}`, clientId: newClients[i].id,
-      name: r.petName || "—", animalType: r.animalType || "cane",
-      breed: r.breed || "Meticcio", size: r.size || "media", mordace: false, notes: "",
-    }));
+    const newPets = newClients.flatMap((c, i) =>
+      (importRows[i].pets || []).map((p, j) => ({
+        id: `p_${c.id}_${j}`, clientId: c.id,
+        name: p.name, animalType: p.animalType || "cane",
+        breed: p.breed || "Meticcio", size: p.size || "media", mordace: false, notes: "",
+      }))
+    );
     await supabase.from("clients").insert(newClients.map(c => ({
       id: c.id, first_name: c.firstName, last_name: c.lastName,
       phone: c.phone, email: c.email, notes: c.notes,
@@ -689,10 +703,12 @@ export default function BokuAI() {
       last_visit: null, loyalty_points: 0, preferred_day: c.preferredDay,
       source: c.source, rating: c.rating,
     })));
-    await supabase.from("pets").insert(newPets.map(p => ({
-      id: p.id, client_id: p.clientId, name: p.name, animal_type: p.animalType,
-      breed: p.breed, size: p.size, mordace: p.mordace, notes: p.notes,
-    })));
+    if (newPets.length) {
+      await supabase.from("pets").insert(newPets.map(p => ({
+        id: p.id, client_id: p.clientId, name: p.name, animal_type: p.animalType,
+        breed: p.breed, size: p.size, mordace: p.mordace, notes: p.notes,
+      })));
+    }
     setClients(prev => [...prev, ...newClients]);
     setPets(prev => [...prev, ...newPets]);
     setImportRows([]);
@@ -2454,8 +2470,9 @@ export default function BokuAI() {
               </div>
               {importRows.length === 0 ? (<>
                 <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.6 }}>
-                  Carica un file <strong>.xlsx</strong>, <strong>.xls</strong> o <strong>.csv</strong>. Le colonne riconosciute sono:<br />
-                  <span style={{ fontFamily: "monospace", fontSize: 12 }}>Nome, Cognome, Telefono, Email, NomeAnimale, TipoAnimale, Razza, Taglia, Note</span>
+                  Carica un file <strong>.xlsx</strong>, <strong>.xls</strong> o <strong>.csv</strong>. Colonne riconosciute:<br />
+                  <span style={{ fontFamily: "monospace", fontSize: 12 }}>Nome, Cognome, Telefono, Email, NomeAnimale, TipoAnimale, Razza, Taglia, Note</span><br />
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Per clienti con più animali, usa una riga per animale con gli stessi dati del proprietario — verranno uniti automaticamente.</span>
                 </div>
                 <div style={{ border: "2px dashed var(--border)", borderRadius: 10, padding: 32, textAlign: "center" }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>📂</div>
@@ -2466,14 +2483,16 @@ export default function BokuAI() {
                 </div>
               </>) : (<>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                  <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 600 }}>✓ {importRows.length} clienti pronti per l'importazione</span>
+                  <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 600 }}>
+                    ✓ {importRows.length} clienti · {importRows.reduce((s, r) => s + (r.pets?.length || 0), 0)} animali
+                  </span>
                   <button className="btn btn-sm" onClick={() => setImportRows([])}>Cambia file</button>
                 </div>
                 <div style={{ overflowX: "auto", maxHeight: 260, overflowY: "auto", marginBottom: 16 }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                     <thead>
                       <tr style={{ background: "var(--bg3)" }}>
-                        {["Nome", "Cognome", "Telefono", "Animale", "Specie", "Razza", "Taglia"].map(h => (
+                        {["Nome", "Cognome", "Telefono", "Animali"].map(h => (
                           <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{h}</th>
                         ))}
                       </tr>
@@ -2484,10 +2503,9 @@ export default function BokuAI() {
                           <td style={{ padding: "6px 10px" }}>{r.firstName}</td>
                           <td style={{ padding: "6px 10px" }}>{r.lastName}</td>
                           <td style={{ padding: "6px 10px" }}>{r.phone}</td>
-                          <td style={{ padding: "6px 10px" }}>{r.petName}</td>
-                          <td style={{ padding: "6px 10px" }}>{r.animalType}</td>
-                          <td style={{ padding: "6px 10px" }}>{r.breed}</td>
-                          <td style={{ padding: "6px 10px" }}>{r.size}</td>
+                          <td style={{ padding: "6px 10px" }}>
+                            {r.pets?.length ? r.pets.map(p => `${ANIMAL_COLORS[p.animalType]?.emoji || "🐾"} ${p.name}`).join(", ") : <span style={{ color: "var(--text-muted)" }}>—</span>}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
