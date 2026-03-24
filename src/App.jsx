@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from "react";
 import { supabase } from "./supabaseClient";
+import * as XLSX from "xlsx";
 
 // ==================== DATA GENERATION ====================
 const SERVICES = [
@@ -402,11 +403,25 @@ export default function BokuAI() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    async function fetchAll(table, query) {
+      const PAGE = 1000;
+      let all = [], from = 0;
+      while (true) {
+        const { data, error } = await query.range(from, from + PAGE - 1);
+        if (error || !data?.length) break;
+        all = all.concat(data);
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      return all;
+    }
     async function loadData() {
-      const { data: c } = await supabase.from('clients').select('*');
-      const { data: b } = await supabase.from('bookings').select('*').order('date').order('time');
-      setClients((c || []).map(dbToClient));
-      setBookings((b || []).map(dbToBooking));
+      const [c, b] = await Promise.all([
+        fetchAll('clients', supabase.from('clients').select('*')),
+        fetchAll('bookings', supabase.from('bookings').select('*').order('date').order('time')),
+      ]);
+      setClients(c.map(dbToClient));
+      setBookings(b.map(dbToBooking));
       setLoading(false);
     }
     loadData();
@@ -432,8 +447,7 @@ export default function BokuAI() {
   const [selectedBookingIds, setSelectedBookingIds] = useState(new Set());
   const [calView, setCalView] = useState("month"); // "month" | "week" | "list"
   const [weekStart, setWeekStart] = useState(() => {
-    // Start on Monday of current week
-    const d = new Date("2026-03-16");
+    const d = new Date();
     const day = d.getDay();
     const diff = d.getDate() - (day === 0 ? 6 : day - 1);
     return new Date(d.getFullYear(), d.getMonth(), diff);
@@ -490,9 +504,13 @@ export default function BokuAI() {
   // New client form
   const emptyClient = { firstName: "", lastName: "", phone: "", email: "", petName: "", breed: "", animalType: "cane", size: "media", notes: "", mordace: false };
   const [newClientForm, setNewClientForm] = useState(emptyClient);
+
+  // Bulk import
+  const [importRows, setImportRows] = useState([]);
+  const [importLoading, setImportLoading] = useState(false);
   
   // New booking form
-  const [newBookingForm, setNewBookingForm] = useState({ clientId: "", date: "2026-03-16", time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
+  const [newBookingForm, setNewBookingForm] = useState({ clientId: "", date: new Date().toISOString().slice(0,10), time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
   
   // Edit booking
   const [editingBooking, setEditingBooking] = useState(null);
@@ -567,6 +585,61 @@ export default function BokuAI() {
     });
     setClients(prev => [...prev, newC]);
     setNewClientForm(emptyClient);
+    setShowModal(null);
+  };
+
+  // BULK IMPORT: parse file into rows
+  const handleImportFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      const norm = (s) => String(s).toLowerCase().trim().replace(/[\s_]/g, "");
+      const map = (row, keys) => { for (const k of keys) { const v = row[Object.keys(row).find(rk => norm(rk) === norm(k)) || ""]; if (v !== undefined && String(v).trim()) return String(v).trim(); } return ""; };
+      const parsed = raw.map(row => ({
+        firstName: map(row, ["nome","firstname","first_name","nome*"]),
+        lastName: map(row, ["cognome","lastname","last_name","surname","cognome*"]),
+        phone: map(row, ["telefono","phone","tel","cellulare"]),
+        email: map(row, ["email","mail","e-mail"]),
+        petName: map(row, ["nomeanimale","animale","pet","petname","pet_name","nomepet"]),
+        animalType: (map(row, ["tipoanimale","specie","animaltype","animal_type","tipo"]) || "cane").toLowerCase(),
+        breed: map(row, ["razza","breed"]),
+        size: (map(row, ["taglia","size"]) || "media").toLowerCase(),
+        notes: map(row, ["note","notes","annotazioni"]),
+      })).filter(r => r.firstName && r.lastName);
+      setImportRows(parsed);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // BULK IMPORT: save to Supabase
+  const bulkImportClients = async () => {
+    if (!importRows.length) return;
+    setImportLoading(true);
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
+    const newClients = importRows.map((r, i) => ({
+      id: `c${Date.now()}${i}`,
+      firstName: r.firstName, lastName: r.lastName,
+      phone: r.phone || "", email: r.email || `${r.firstName.toLowerCase()}.${r.lastName.toLowerCase()}@email.it`,
+      animalType: r.animalType || "cane", petName: r.petName || "—", breed: r.breed || "Meticcio",
+      size: r.size || "media", notes: r.notes || "", registeredDate: today,
+      totalSpent: 0, visitCount: 0, lastVisit: null, loyaltyPoints: 0,
+      preferredDay: "Lunedì", source: "import", rating: 5, mordace: false,
+    }));
+    await supabase.from("clients").insert(newClients.map(c => ({
+      id: c.id, first_name: c.firstName, last_name: c.lastName,
+      phone: c.phone, email: c.email, animal_type: c.animalType,
+      pet_name: c.petName, breed: c.breed, size: c.size, notes: c.notes,
+      registered_date: c.registeredDate, total_spent: 0, visit_count: 0,
+      last_visit: null, loyalty_points: 0, preferred_day: c.preferredDay,
+      source: c.source, rating: c.rating, mordace: c.mordace,
+    })));
+    setClients(prev => [...prev, ...newClients]);
+    setImportRows([]);
+    setImportLoading(false);
     setShowModal(null);
   };
 
@@ -647,7 +720,10 @@ export default function BokuAI() {
     return bookings.filter(b => b.date.startsWith(prefix));
   }, [bookings, calMonth, calYear]);
 
-  const thisMonthStr = "2026-03", lastMonthStr = "2026-02";
+  const _today = new Date();
+  const thisMonthStr = `${_today.getFullYear()}-${String(_today.getMonth() + 1).padStart(2, "0")}`;
+  const _lastM = new Date(_today.getFullYear(), _today.getMonth() - 1, 1);
+  const lastMonthStr = `${_lastM.getFullYear()}-${String(_lastM.getMonth() + 1).padStart(2, "0")}`;
   const thisMonth = useMemo(() => bookings.filter(b => b.date.startsWith(thisMonthStr)), [bookings]);
   const lastMonth = useMemo(() => bookings.filter(b => b.date.startsWith(lastMonthStr)), [bookings]);
   const completedThis = thisMonth.filter(b => b.status === "completato" || b.status === "confermato");
@@ -661,17 +737,21 @@ export default function BokuAI() {
   const pctChange = (curr, prev) => prev === 0 ? 0 : Math.round((curr - prev) / prev * 100);
 
   const monthlyData = useMemo(() => {
-    const months = ["Ott","Nov","Dic","Gen","Feb","Mar"];
-    const prefixes = ["2025-10","2025-11","2025-12","2026-01","2026-02","2026-03"];
-    return prefixes.map((p, i) => {
-      const mb = bookings.filter(b => b.date.startsWith(p) && (b.status === "completato" || b.status === "confermato"));
-      return { label: months[i], revenue: mb.reduce((s, b) => s + b.price, 0), count: mb.length, profit: mb.reduce((s, b) => s + b.price - b.cost, 0), type: "actual" };
-    });
+    const MONTH_NAMES = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+    const today = new Date();
+    const result = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const prefix = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const mb = bookings.filter(b => b.date.startsWith(prefix) && (b.status === "completato" || b.status === "confermato"));
+      result.push({ label: MONTH_NAMES[d.getMonth()], revenue: mb.reduce((s, b) => s + b.price, 0), count: mb.length, profit: mb.reduce((s, b) => s + b.price - b.cost, 0), type: "actual" });
+    }
+    return result;
   }, [bookings]);
 
   // ============ BOTTOM-UP CLIENT-LEVEL FORECAST ============
   const clientForecast = useMemo(() => {
-    const TODAY = new Date("2026-03-16");
+    const TODAY = new Date();
     const daysBetween = (a, b) => Math.round((b - a) / 86400000);
     const completedBookings = bookings.filter(b => b.status === "completato");
 
@@ -687,10 +767,8 @@ export default function BokuAI() {
       const avgRevenue = cb.reduce((s, b) => s + b.price, 0) / cb.length;
 
       if (cb.length === 1) {
-        // Single visit — assume 45-day cycle (industry average), low confidence
-        const lastDate = dates[0];
-        const nextExpected = new Date(lastDate.getTime() + 45 * 86400000);
-        return { ...client, cycle: 45, stddev: 20, confidence: "low", nextExpected, lastVisitDate: lastDate, intervals: [], avgRevenue, visitDates: dates };
+        // Single visit — cannot compute a real cycle, exclude from projection
+        return { ...client, cycle: null, confidence: "none", nextExpected: null, lastVisitDate: dates[0], intervals: [], avgRevenue, visitDates: dates };
       }
 
       // Calculate intervals between consecutive visits
@@ -724,7 +802,7 @@ export default function BokuAI() {
 
     // Project each client's visits into future months
     const monthBuckets = {};
-    const initMonth = (key) => { if (!monthBuckets[key]) monthBuckets[key] = { high: [], medium: [], low: [], newClients: 0, totalRev: 0 }; };
+    const initMonth = (key) => { if (!monthBuckets[key]) monthBuckets[key] = { high: [], medium: [], low: [], totalRev: 0 }; };
 
     const forecastHorizon = 365; // 12 months max
 
@@ -755,22 +833,12 @@ export default function BokuAI() {
       }
     });
 
-    // Estimate new client acquisition per month (based on historical rate)
-    const monthsWithData = 6;
-    const newClientsPerMonth = Math.round(clients.filter(c => c.registeredDate >= "2025-10-01").length / monthsWithData);
-    const avgNewClientRev = 35; // first-visit average
-
-    Object.keys(monthBuckets).forEach(k => {
-      monthBuckets[k].newClients = newClientsPerMonth;
-      monthBuckets[k].totalRev += newClientsPerMonth * avgNewClientRev;
-    });
-
     // Summary stats
     const activeClients = clientProfiles.filter(cp => cp.confidence === "high" || cp.confidence === "medium");
     const churnedClients = clientProfiles.filter(cp => cp.confidence === "churned");
     const avgCycleAll = activeClients.length ? Math.round(activeClients.reduce((s, c) => s + (c.cycle || 0), 0) / activeClients.length) : 0;
 
-    return { clientProfiles, monthBuckets, newClientsPerMonth, avgCycleAll, activeClients, churnedClients };
+    return { clientProfiles, monthBuckets, avgCycleAll, activeClients, churnedClients };
   }, [clients, bookings]);
 
   // Dashboard extended: 6 actual + 2 forecast months
@@ -778,18 +846,18 @@ export default function BokuAI() {
     const fcKeys = ["2026-04","2026-05"];
     const fcLabels = ["Apr","Mag"];
     const fcMonths = fcKeys.map((key, i) => {
-      const bucket = clientForecast.monthBuckets[key] || { high: [], medium: [], low: [], newClients: 0, totalRev: 0 };
+      const bucket = clientForecast.monthBuckets[key] || { high: [], medium: [], low: [], totalRev: 0 };
       const actualBooked = bookings.filter(b => b.date.startsWith(key) && (b.status === "confermato" || b.status === "in-attesa")).length;
       const actualRev = bookings.filter(b => b.date.startsWith(key) && (b.status === "confermato" || b.status === "in-attesa")).reduce((s, b) => s + b.price, 0);
-      const fcCount = bucket.high.length + bucket.medium.length + bucket.low.length + bucket.newClients;
+      const fcCount = bucket.high.length + bucket.medium.length + bucket.low.length;
       const fcRev = Math.round(bucket.totalRev);
       return { label: fcLabels[i], revenue: actualRev || fcRev, count: actualBooked || fcCount, profit: Math.round((actualRev || fcRev) * 0.68), type: "forecast", booked: actualBooked, forecastCount: fcCount };
     });
     return [...monthlyData, ...fcMonths];
   }, [monthlyData, clientForecast, bookings]);
 
-  // Today's bookings
-  const todayStr = "2026-03-16";
+  // Today's bookings (Italy timezone)
+  const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
   const todayBookings = useMemo(() => bookings.filter(b => b.date === todayStr).sort((a, b) => a.time.localeCompare(b.time)), [bookings]);
 
   const serviceStats = useMemo(() => {
@@ -830,17 +898,16 @@ export default function BokuAI() {
     const avgRev = monthlyData.reduce((s, m) => s + m.revenue, 0) / monthlyData.reduce((s, m) => s + m.count, 0);
     
     return months.map((m, i) => {
-      const bucket = clientForecast.monthBuckets[keys[i]] || { high: [], medium: [], low: [], newClients: 0, totalRev: 0 };
+      const bucket = clientForecast.monthBuckets[keys[i]] || { high: [], medium: [], low: [], totalRev: 0 };
       const highCount = bucket.high.length;
       const medCount = bucket.medium.length;
       const lowCount = bucket.low.length;
-      const newCount = bucket.newClients;
-      const predicted = highCount + medCount + lowCount + newCount;
-      // Confidence interval: high clients are certain, others have variance
-      const low = highCount + Math.round(medCount * 0.6) + Math.round(lowCount * 0.3) + Math.round(newCount * 0.5);
-      const high = highCount + Math.round(medCount * 1.3) + Math.round(lowCount * 1.8) + Math.round(newCount * 1.5);
+      const predicted = highCount + medCount + lowCount;
+      // Confidence interval
+      const low = highCount + Math.round(medCount * 0.6) + Math.round(lowCount * 0.3);
+      const high = highCount + Math.round(medCount * 1.3) + Math.round(lowCount * 1.8);
       const revenue = Math.round(bucket.totalRev);
-      return { month: m, predicted, low, high, revenue, highCount, medCount, lowCount, newCount };
+      return { month: m, predicted, low, high, revenue, highCount, medCount, lowCount };
     });
   }, [clientForecast, monthlyData]);
 
@@ -853,7 +920,7 @@ export default function BokuAI() {
     const hist6 = monthlyData.map((m, i) => ({
       label: m.label, fullLabel: `${m.label} ${i < 3 ? "2025" : "2026"}`,
       count: m.count, revenue: m.revenue, profit: m.profit,
-      type: "actual", highCount: 0, medCount: 0, lowCount: 0, newCount: 0
+      type: "actual", highCount: 0, medCount: 0, lowCount: 0
     }));
 
     // Synthetic 12m extra history
@@ -864,7 +931,7 @@ export default function BokuAI() {
       const r1 = rng(), r2 = rng();
       const base = Math.round(75 + r1 * 30);
       const rev = Math.round(base * avgRev * (0.92 + r2 * 0.08));
-      hist12extra.push({ label: monthNames[mIdx], fullLabel: `${monthNames[mIdx]} 2025`, count: base, revenue: rev, profit: Math.round(rev * 0.65), type: "actual", highCount: 0, medCount: 0, lowCount: 0, newCount: 0 });
+      hist12extra.push({ label: monthNames[mIdx], fullLabel: `${monthNames[mIdx]} 2025`, count: base, revenue: rev, profit: Math.round(rev * 0.65), type: "actual", highCount: 0, medCount: 0, lowCount: 0 });
     }
 
     // Build forecast months from client-level data
@@ -875,16 +942,16 @@ export default function BokuAI() {
         const mIdx = absMonth % 12;
         const yearLabel = absMonth < 12 ? "2026" : "2027";
         const key = `${yearLabel}-${String(mIdx + 1).padStart(2, "0")}`;
-        const bucket = clientForecast.monthBuckets[key] || { high: [], medium: [], low: [], newClients: 0, totalRev: 0 };
-        const hc = bucket.high.length, mc = bucket.medium.length, lc = bucket.low.length, nc = bucket.newClients;
-        const predicted = hc + mc + lc + nc;
-        const low = hc + Math.round(mc * 0.6) + Math.round(lc * 0.3) + Math.round(nc * 0.5);
-        const high = hc + Math.round(mc * 1.3) + Math.round(lc * 1.8) + Math.round(nc * 1.5);
+        const bucket = clientForecast.monthBuckets[key] || { high: [], medium: [], low: [], totalRev: 0 };
+        const hc = bucket.high.length, mc = bucket.medium.length, lc = bucket.low.length;
+        const predicted = hc + mc + lc;
+        const low = hc + Math.round(mc * 0.6) + Math.round(lc * 0.3);
+        const high = hc + Math.round(mc * 1.3) + Math.round(lc * 1.8);
         fc.push({
           label: monthNames[mIdx], fullLabel: `${monthNames[mIdx]} ${yearLabel}`,
           count: predicted, low, high,
           revenue: Math.round(bucket.totalRev), profit: Math.round(bucket.totalRev * 0.68),
-          type: "forecast", highCount: hc, medCount: mc, lowCount: lc, newCount: nc
+          type: "forecast", highCount: hc, medCount: mc, lowCount: lc
         });
       }
       return fc;
@@ -1027,7 +1094,7 @@ export default function BokuAI() {
 
                 {/* TODAY'S RECAP */}
                 <div className="card">
-                  <div className="card-header"><h3>Recap Oggi — 16 Marzo</h3><span className="badge" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>{todayBookings.length} appuntamenti</span></div>
+                  <div className="card-header"><h3>Recap Oggi — {new Date().toLocaleDateString("it-IT", { timeZone: "Europe/Rome", day: "numeric", month: "long" })}</h3><span className="badge" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>{todayBookings.length} appuntamenti</span></div>
                   {todayBookings.length === 0 ? (
                     <div style={{ textAlign: "center", padding: 20, color: "var(--text-muted)", fontSize: 13 }}>Nessun appuntamento per oggi</div>
                   ) : (<>
@@ -1141,7 +1208,7 @@ export default function BokuAI() {
                     {weekStart.toLocaleDateString("it-IT", { day: "numeric", month: "short" })} — {new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                   <button className="btn btn-sm" onClick={() => setWeekStart(d => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7))}><Icon name="right" size={14} /></button>
-                  <button className="btn btn-sm" onClick={() => { const d = new Date("2026-03-16"); const day = d.getDay(); setWeekStart(new Date(d.getFullYear(), d.getMonth(), d.getDate() - (day === 0 ? 6 : day - 1))); }}>Oggi</button>
+                  <button className="btn btn-sm" onClick={() => { const d = new Date(); const day = d.getDay(); setWeekStart(new Date(d.getFullYear(), d.getMonth(), d.getDate() - (day === 0 ? 6 : day - 1))); }}>Oggi</button>
                 </>)}
                 <button className="btn btn-primary" onClick={() => setShowModal("new")}><Icon name="plus" size={16} /> Prenota</button>
               </div>
@@ -1213,7 +1280,7 @@ export default function BokuAI() {
                 const SLOTS = (END_HOUR - START_HOUR) * 2; // 22 half-hour slots
                 const weekDays = Array.from({ length: 7 }, (_, i) => {
                   const d = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
-                  return { date: d, dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, dayName: ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][d.getDay()], dayNum: d.getDate(), isToday: d.toDateString() === new Date("2026-03-16").toDateString() };
+                  return { date: d, dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, dayName: ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][d.getDay()], dayNum: d.getDate(), isToday: d.toDateString() === new Date().toDateString() };
                 });
                 const statusColors = { completato: { bg: "var(--success-dim)", border: "var(--success)", text: "var(--success)" }, confermato: { bg: "var(--blue-dim)", border: "var(--blue)", text: "var(--blue)" }, "in-attesa": { bg: "var(--warning-dim)", border: "var(--warning)", text: "var(--warning)" }, cancellato: { bg: "var(--danger-dim)", border: "var(--danger)", text: "var(--danger)" }, "no-show": { bg: "var(--purple-dim)", border: "var(--purple)", text: "var(--purple)" } };
                 
@@ -1392,6 +1459,7 @@ export default function BokuAI() {
               <div className="header-left"><h2>Clienti</h2><p>{clients.length} clienti registrati</p></div>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <input placeholder="Cerca cliente, cane, razza..." value={clientFilter} onChange={e => setClientFilter(e.target.value)} style={{ width: 280 }} />
+                <button className="btn" onClick={() => { setImportRows([]); setShowModal("importClients"); }}>⬆ Importa CSV/Excel</button>
                 <button className="btn btn-primary" onClick={() => setShowModal("newClient")}><Icon name="plus" size={16} /> Nuovo Cliente</button>
               </div>
             </div>
@@ -1784,7 +1852,7 @@ export default function BokuAI() {
                   ["Clienti Attivi", clientForecast.activeClients.length, "var(--accent)"],
                   ["Ciclo Medio", `${clientForecast.avgCycleAll}gg`, "var(--purple)"],
                   ["A Rischio Churn", clientForecast.churnedClients.length, "var(--danger)"],
-                  ["Nuovi Clienti/Mese", `~${clientForecast.newClientsPerMonth}`, "var(--blue)"],
+                  ["Clienti con Ciclo", clientForecast.clientProfiles.filter(c => c.cycle).length, "var(--blue)"],
                 ].map(([l, v, c], i) => (
                   <div className="stat-card" key={i} style={{ borderTop: `2px solid ${c}` }}>
                     <div className="stat-label">{l}</div>
@@ -1802,7 +1870,6 @@ export default function BokuAI() {
                     <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--accent)" }} /> Alta conf.</span>
                     <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--purple)" }} /> Media conf.</span>
                     <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--blue)" }} /> Bassa conf.</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: "var(--orange)" }} /> Nuovi clienti</span>
                   </div>
                 </div>
                 {(() => {
@@ -1848,8 +1915,6 @@ export default function BokuAI() {
                             const hH = d.highCount ? (d.highCount / maxCount) * (chartH - 30) : 0;
                             const mH = d.medCount ? (d.medCount / maxCount) * (chartH - 30) : 0;
                             const lH = d.lowCount ? (d.lowCount / maxCount) * (chartH - 30) : 0;
-                            const nH = d.newCount ? (d.newCount / maxCount) * (chartH - 30) : 0;
-                            
                             return (
                               <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", width: barW, position: "relative" }}>
                                 {d.high && (
@@ -1857,8 +1922,7 @@ export default function BokuAI() {
                                 )}
                                 <div style={{ fontSize: forecastRange === "12m" ? 9 : 10, fontWeight: 700, color: "var(--purple)", marginBottom: 4 }}>{d.count}</div>
                                 <div style={{ display: "flex", flexDirection: "column", width: barW, cursor: "pointer" }}
-                                  title={`${d.fullLabel}: ${d.count} tot — ✅${d.highCount} alta, ⚡${d.medCount} media, ❓${d.lowCount} bassa, 🆕${d.newCount} nuovi (range ${d.low}–${d.high})`}>
-                                  <div style={{ width: barW, height: nH, background: "var(--orange)", borderRadius: nH > 0 && hH + mH + lH === 0 ? "4px 4px 0 0" : "0", transition: "height 600ms ease" }} />
+                                  title={`${d.fullLabel}: ${d.count} tot — ✅${d.highCount} alta, ⚡${d.medCount} media, ❓${d.lowCount} bassa (range ${d.low}–${d.high})`}>
                                   <div style={{ width: barW, height: lH, background: "var(--blue)", transition: "height 600ms ease" }} />
                                   <div style={{ width: barW, height: mH, background: "var(--purple)", transition: "height 600ms ease" }} />
                                   <div style={{ width: barW, height: hH, background: "var(--accent)", borderRadius: "0 0 0 0", transition: "height 600ms ease" }} />
@@ -1924,7 +1988,6 @@ export default function BokuAI() {
                     <th style={{ color: "var(--accent)" }}>✅ Alta Conf.</th>
                     <th style={{ color: "var(--purple)" }}>⚡ Media Conf.</th>
                     <th style={{ color: "var(--blue)" }}>❓ Bassa Conf.</th>
-                    <th style={{ color: "var(--orange)" }}>🆕 Nuovi</th>
                     <th>Totale</th>
                     <th>Range</th>
                     <th>Fatturato</th>
@@ -1936,7 +1999,6 @@ export default function BokuAI() {
                         <td><span style={{ fontWeight: 700, color: "var(--accent)" }}>{f.highCount}</span></td>
                         <td><span style={{ fontWeight: 700, color: "var(--purple)" }}>{f.medCount}</span></td>
                         <td><span style={{ fontWeight: 700, color: "var(--blue)" }}>{f.lowCount}</span></td>
-                        <td><span style={{ fontWeight: 700, color: "var(--orange)" }}>{f.newCount}</span></td>
                         <td style={{ fontWeight: 800, fontSize: 15 }}>{f.predicted}</td>
                         <td><span style={{ fontSize: 12, color: "var(--text-dim)" }}>{f.low} – {f.high}</span></td>
                         <td style={{ fontWeight: 600, color: "var(--accent)" }}>€{(f.revenue / 1000).toFixed(1)}k</td>
@@ -1973,12 +2035,11 @@ export default function BokuAI() {
                   <div className="card-header"><h3>Come funziona il modello</h3><span className="badge" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>boku.ai engine</span></div>
                   <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.8 }}>
                     {[
-                      ["1️⃣", "Calcola il ciclo medio di ritorno per ogni cliente dagli intervalli tra visite"],
+                      ["1️⃣", "Calcola il ciclo medio di ritorno per ogni cliente dagli intervalli tra visite (min. 2 visite)"],
                       ["2️⃣", "Proietta la prossima visita attesa: ultima visita + ciclo medio"],
                       ["3️⃣", "Classifica la confidenza in base a regolarità (CV < 0.3 = alta) e numero visite"],
                       ["4️⃣", "Identifica il churn: se > 2.5× il ciclo è passato senza visita, il cliente è probabilmente perso"],
-                      ["5️⃣", "Stima i nuovi clienti/mese dal tasso di acquisizione storico per canale"],
-                      ["6️⃣", "Aggrega tutti i clienti per mese → forecast bottom-up con intervallo di confidenza pesato"],
+                      ["5️⃣", "Aggrega tutti i clienti per mese → forecast bottom-up con intervallo di confidenza pesato"],
                     ].map(([icon, text], i) => (
                       <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8 }}>
                         <span>{icon}</span>
@@ -2246,6 +2307,67 @@ export default function BokuAI() {
                 <button className="btn" onClick={() => { setNewClientForm(emptyClient); setShowModal(null); }}>Annulla</button>
                 <button className="btn btn-primary" onClick={addClient} disabled={!newClientForm.firstName || !newClientForm.lastName || !newClientForm.petName}><Icon name="check" size={14} /> Salva Cliente</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* IMPORT CLIENTS */}
+        {showModal === "importClients" && (
+          <div className="modal-overlay" onClick={() => setShowModal(null)}>
+            <div className="modal" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <h3>Importa Clienti</h3>
+                <button onClick={() => setShowModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text)" }}><Icon name="x" size={20} /></button>
+              </div>
+              {importRows.length === 0 ? (<>
+                <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.6 }}>
+                  Carica un file <strong>.xlsx</strong>, <strong>.xls</strong> o <strong>.csv</strong>. Le colonne riconosciute sono:<br />
+                  <span style={{ fontFamily: "monospace", fontSize: 12 }}>Nome, Cognome, Telefono, Email, NomeAnimale, TipoAnimale, Razza, Taglia, Note</span>
+                </div>
+                <div style={{ border: "2px dashed var(--border)", borderRadius: 10, padding: 32, textAlign: "center" }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>📂</div>
+                  <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>Trascina un file qui o clicca per selezionarlo</div>
+                  <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} id="import-file-input"
+                    onChange={e => handleImportFile(e.target.files[0])} />
+                  <label htmlFor="import-file-input" className="btn btn-primary" style={{ cursor: "pointer" }}>Seleziona file</label>
+                </div>
+              </>) : (<>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 600 }}>✓ {importRows.length} clienti pronti per l'importazione</span>
+                  <button className="btn btn-sm" onClick={() => setImportRows([])}>Cambia file</button>
+                </div>
+                <div style={{ overflowX: "auto", maxHeight: 260, overflowY: "auto", marginBottom: 16 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: "var(--bg3)" }}>
+                        {["Nome", "Cognome", "Telefono", "Animale", "Specie", "Razza", "Taglia"].map(h => (
+                          <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importRows.slice(0, 10).map((r, i) => (
+                        <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
+                          <td style={{ padding: "6px 10px" }}>{r.firstName}</td>
+                          <td style={{ padding: "6px 10px" }}>{r.lastName}</td>
+                          <td style={{ padding: "6px 10px" }}>{r.phone}</td>
+                          <td style={{ padding: "6px 10px" }}>{r.petName}</td>
+                          <td style={{ padding: "6px 10px" }}>{r.animalType}</td>
+                          <td style={{ padding: "6px 10px" }}>{r.breed}</td>
+                          <td style={{ padding: "6px 10px" }}>{r.size}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {importRows.length > 10 && <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "8px 10px" }}>… e altri {importRows.length - 10} clienti</div>}
+                </div>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button className="btn" onClick={() => setShowModal(null)}>Annulla</button>
+                  <button className="btn btn-primary" disabled={importLoading} onClick={bulkImportClients}>
+                    {importLoading ? "Importazione..." : `⬆ Importa ${importRows.length} clienti`}
+                  </button>
+                </div>
+              </>)}
             </div>
           </div>
         )}
