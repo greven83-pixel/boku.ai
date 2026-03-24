@@ -2176,28 +2176,63 @@ export default function BokuAI() {
                   </div>
                 </div>
               </div>)}
-              {analyticsTab === "clients" && (<div className="two-col">
-                <div className="card">
-                  <div className="card-header"><h3>Distribuzione Visite</h3></div>
-                  {[["1 visita", clients.filter(c => c.visitCount === 1).length],["2-3 visite", clients.filter(c => c.visitCount >= 2 && c.visitCount <= 3).length],["4-6 visite", clients.filter(c => c.visitCount >= 4 && c.visitCount <= 6).length],["7+ visite", clients.filter(c => c.visitCount >= 7).length]].map(([label, count]) => (
-                    <div key={label} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-                      <div style={{ width: 80, fontSize: 13, fontWeight: 500 }}>{label}</div>
-                      <div style={{ flex: 1 }}><div className="forecast-bar-bg"><div className="forecast-bar-fill" style={{ width: `${(count / clients.length) * 100}%`, background: "var(--accent)" }} /></div></div>
-                      <div style={{ fontWeight: 700, fontSize: 13, minWidth: 50 }}>{count} ({Math.round(count / clients.length * 100)}%)</div>
+              {analyticsTab === "clients" && (() => {
+                const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
+                const daysSince = (dateStr) => {
+                  if (!dateStr) return null;
+                  return Math.floor((new Date(today) - new Date(dateStr)) / 86400000);
+                };
+                const clientsWithDays = clients
+                  .map(c => ({ ...c, ...(clientBookingStats[c.id] || {}), days: daysSince((clientBookingStats[c.id] || {}).lastVisit) }))
+                  .filter(c => c.days !== null && c.visitCount > 0);
+                const at30 = clientsWithDays.filter(c => c.days >= 30 && c.days < 60).sort((a, b) => b.days - a.days);
+                const at60 = clientsWithDays.filter(c => c.days >= 60 && c.days < 90).sort((a, b) => b.days - a.days);
+                const at90 = clientsWithDays.filter(c => c.days >= 90).sort((a, b) => b.days - a.days);
+                const RiskTable = ({ list, color, label }) => (
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                      <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: color }} />
+                      <span style={{ fontWeight: 700, fontSize: 13 }}>{label}</span>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)", background: "var(--bg3)", padding: "2px 8px", borderRadius: 10 }}>{list.length} clienti</span>
                     </div>
-                  ))}
-                </div>
-                <div className="card">
-                  <div className="card-header"><h3>Segmentazione Valore</h3></div>
-                  {[["🥇 Gold (>€300)", clients.filter(c => c.totalSpent > 300), "var(--orange)"],["🥈 Silver (€150-300)", clients.filter(c => c.totalSpent >= 150 && c.totalSpent <= 300), "var(--text-muted)"],["🥉 Bronze (<€150)", clients.filter(c => c.totalSpent < 150 && c.totalSpent > 0), "var(--purple)"],["👻 Dormienti (€0)", clients.filter(c => c.totalSpent === 0), "var(--text-muted)"]].map(([label, seg, color]) => (
-                    <div key={label} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "var(--bg3)", borderRadius: 8, marginBottom: 8 }}>
-                      <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{label}</div>
-                      <div style={{ fontWeight: 700, fontSize: 15, color }}>{seg.length}</div>
-                      <div style={{ fontSize: 12, color: "var(--text-muted)", minWidth: 80, textAlign: "right" }}>€{seg.reduce((s, c) => s + c.totalSpent, 0).toLocaleString()}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>)}
+                    {list.length === 0 ? (
+                      <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "10px 0" }}>Nessun cliente in questa fascia</div>
+                    ) : (
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                          <thead><tr style={{ background: "var(--bg3)" }}>
+                            {["Cliente","Animale","Ultima visita","Giorni fa","Visite tot.","Spesa tot."].map(h => (
+                              <th key={h} style={{ padding: "6px 12px", textAlign: "left", fontWeight: 600, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{h}</th>
+                            ))}
+                          </tr></thead>
+                          <tbody>{list.map(c => (
+                            <tr key={c.id} style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }} onClick={() => { setSelectedClient(c); setView("clients"); }}>
+                              <td style={{ padding: "8px 12px", fontWeight: 500 }}>{c.firstName} {c.lastName}</td>
+                              <td style={{ padding: "8px 12px" }}>{(clientPetsMap[c.id] || []).map(p => `${ANIMAL_COLORS[p.animalType]?.emoji || "🐾"} ${p.name}`).join(", ") || "—"}</td>
+                              <td style={{ padding: "8px 12px" }}>{c.lastVisit || "—"}</td>
+                              <td style={{ padding: "8px 12px" }}><span style={{ fontWeight: 700, color }}>{c.days}gg</span></td>
+                              <td style={{ padding: "8px 12px" }}>{c.visitCount}</td>
+                              <td style={{ padding: "8px 12px", color: "var(--accent)", fontWeight: 600 }}>€{c.totalSpent}</td>
+                            </tr>
+                          ))}</tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+                return (<div>
+                  <div className="stats-grid" style={{ marginBottom: 24 }}>
+                    {[[at30.length, "Assenti 30+ giorni", "var(--orange)"], [at60.length, "Assenti 60+ giorni", "var(--danger)"], [at90.length, "Assenti 90+ giorni", "#7f1d1d"]].map(([v, l, c]) => (
+                      <div className="stat-card" key={l} style={{ borderTop: `2px solid ${c}` }}><div className="stat-label">{l}</div><div className="stat-value" style={{ color: c }}>{v}</div></div>
+                    ))}
+                  </div>
+                  <div className="card">
+                    <RiskTable list={at30} color="var(--orange)" label="🟡 Assenti da 30–59 giorni" />
+                    <RiskTable list={at60} color="var(--danger)" label="🔴 Assenti da 60–89 giorni" />
+                    <RiskTable list={at90} color="#ef4444" label="⚫ Assenti da 90+ giorni" />
+                  </div>
+                </div>);
+              })()}
             </div>
           </>)}
 
