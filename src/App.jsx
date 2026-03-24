@@ -1286,11 +1286,15 @@ export default function BokuAI() {
   const isToday = (day, month) => day === today.getDate() && month === today.getMonth() && calYear === today.getFullYear();
   const dayBookings = useMemo(() => selectedDate ? bookings.filter(b => b.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time)) : [], [bookings, selectedDate]);
   // Calcola visite/spesa/ultima visita da bookings reali (sempre aggiornato)
+  // Una "visita" = appuntamento passato non cancellato (Felioom non aggiorna lo stato automaticamente)
   const clientBookingStats = useMemo(() => {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
     const map = {};
     bookings.forEach(b => {
       if (!map[b.clientId]) map[b.clientId] = { visitCount: 0, totalSpent: 0, lastVisit: null };
-      if (b.status === "completato") {
+      const isPast = b.date <= today;
+      const notCancelled = b.status !== "cancellato";
+      if (isPast && notCancelled) {
         map[b.clientId].visitCount++;
         map[b.clientId].totalSpent += Number(b.price) || 0;
         if (!map[b.clientId].lastVisit || b.date > map[b.clientId].lastVisit) map[b.clientId].lastVisit = b.date;
@@ -1871,7 +1875,7 @@ export default function BokuAI() {
                         const hasCycle = profile && profile.cycle && profile.confidence !== "none";
                         return (<>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                            {[["Spesa Totale", `€${selectedClient.totalSpent}`, "var(--accent)"],["Visite", selectedClient.visitCount, "var(--text)"],["Punti Fedeltà", selectedClient.loyaltyPoints, "var(--orange)"],["Scontrino Medio", `€${selectedClient.visitCount ? Math.round(selectedClient.totalSpent / selectedClient.visitCount) : 0}`, "var(--text)"]].map(([l, v, c], i) => (
+                            {(() => { const sc = clientBookingStats[selectedClient.id] || { visitCount: 0, totalSpent: 0 }; return [["Spesa Totale", `€${sc.totalSpent}`, "var(--accent)"],["Visite", sc.visitCount, "var(--text)"],["Punti Fedeltà", selectedClient.loyaltyPoints, "var(--orange)"],["Scontrino Medio", `€${sc.visitCount ? Math.round(sc.totalSpent / sc.visitCount) : 0}`, "var(--text)"]]; })().map(([l, v, c], i) => (
                               <div key={i}><div className="stat-label">{l}</div><div style={{ fontSize: 28, fontWeight: 800, color: c }}>{v}</div></div>
                             ))}
                           </div>
