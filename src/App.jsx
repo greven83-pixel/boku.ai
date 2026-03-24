@@ -819,8 +819,13 @@ export default function BokuAI() {
     const petByKey = {};
     pets.forEach(p => { petByKey[`${p.clientId}_${p.name.toLowerCase()}`] = p; });
 
+    // Deduplicazione: chiave = clientId + date + time
+    const existingBookingKeys = new Set(
+      bookings.map(b => `${b.clientId}|${b.date}|${b.time}`)
+    );
+
     const newClients = [], newPets = [], newBookings = [];
-    let matchedClients = 0, createdClients = 0, createdPets = 0;
+    let matchedClients = 0, createdClients = 0, createdPets = 0, skipped = 0;
 
     for (let i = 0; i < importBookingRows.length; i++) {
       const row = importBookingRows[i];
@@ -858,6 +863,11 @@ export default function BokuAI() {
           createdPets++;
         }
       }
+
+      // Salta se già esiste
+      const bookingKey = `${client.id}|${row.date}|${row.time}`;
+      if (existingBookingKeys.has(bookingKey)) { skipped++; continue; }
+      existingBookingKeys.add(bookingKey);
 
       newBookings.push({
         id: `b_imp_${i}_${Math.random().toString(36).slice(2,8)}`,
@@ -922,7 +932,7 @@ export default function BokuAI() {
     });
     setPets(prev => [...prev, ...newPets]);
     setBookings(prev => [...prev, ...newBookings].sort((a, b) => a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date)));
-    setImportBookingStats({ total: newBookings.length, matchedClients, createdClients, createdPets });
+    setImportBookingStats({ total: newBookings.length, matchedClients, createdClients, createdPets, skipped });
     setImportBookingRows([]);
     setImportBookingLoading(false);
   };
@@ -2781,8 +2791,9 @@ export default function BokuAI() {
                   <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Importazione completata!</div>
                   <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 2 }}>
                     <div>📅 <strong>{importBookingStats.total}</strong> appuntamenti importati</div>
-                    <div>👤 <strong>{importBookingStats.newClients}</strong> nuovi clienti creati</div>
-                    <div>🐾 <strong>{importBookingStats.newPets}</strong> nuovi animali creati</div>
+                    <div>👤 <strong>{importBookingStats.createdClients}</strong> nuovi clienti creati</div>
+                    <div>🐾 <strong>{importBookingStats.createdPets}</strong> nuovi animali creati</div>
+                    {importBookingStats.skipped > 0 && <div style={{ color: "var(--text-muted)" }}>⏭ <strong>{importBookingStats.skipped}</strong> già presenti, saltati</div>}
                   </div>
                   <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => { setShowModal(null); setImportBookingRows([]); setImportBookingStats(null); }}>Chiudi</button>
                 </div>
