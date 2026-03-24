@@ -759,16 +759,32 @@ export default function BokuAI() {
           const y = m[3].length === 2 ? "20" + m[3] : m[3];
           return `${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
         }
-        // Numero seriale Excel (giorni dal 1900-01-01)
-        if (/^\d+$/.test(str)) {
-          const d = new Date((parseInt(str) - 25569) * 86400 * 1000);
+        // Numero seriale Excel (interi o decimali, es. 45727.333)
+        if (/^\d+(\.\d+)?$/.test(str)) {
+          const d = new Date((parseFloat(str) - 25569) * 86400 * 1000);
           return new Intl.DateTimeFormat("en-CA").format(d);
         }
         return str;
       };
-      const parsed = raw.map(row => ({
-        date: normalizeDate(col(row, ["data","date"])),
-        time: col(row, ["orario","time","ora"]) || "09:00",
+      // Estrae HH:MM dal seriale Excel o da stringa orario
+      const normalizeTime = (dateRaw, timeRaw) => {
+        const t = String(timeRaw || "").trim();
+        if (t && /\d{1,2}:\d{2}/.test(t)) return t.slice(0, 5);
+        // prova a estrarre dal seriale data (parte decimale = frazione del giorno)
+        const ds = String(dateRaw || "").trim();
+        if (/^\d+\.\d+$/.test(ds)) {
+          const frac = parseFloat(ds) % 1;
+          const totalMin = Math.round(frac * 1440);
+          return `${String(Math.floor(totalMin / 60)).padStart(2,"0")}:${String(totalMin % 60).padStart(2,"0")}`;
+        }
+        return "09:00";
+      };
+      const parsed = raw.map(row => {
+        const dateRaw = col(row, ["data","date"]);
+        const timeRaw = col(row, ["orario","time","ora"]);
+        return {
+        date: normalizeDate(dateRaw),
+        time: normalizeTime(dateRaw, timeRaw),
         duration: parseInt(col(row, ["duratamin","durata","duration","minuti"])) || 60,
         ownerFirstName: col(row, ["nomeproprietario","nome","firstname"]),
         ownerLastName: col(row, ["cognomeproprietario","cognome","lastname"]),
@@ -779,7 +795,8 @@ export default function BokuAI() {
         price: parseFloat(col(row, ["totale","prezzo","total","price"])) || 0,
         status: mapStatus(col(row, ["stato","status","stato"])),
         notes: col(row, ["note","notes","annotazioni"]),
-      })).filter(r => r.date);
+        };
+      }).filter(r => r.date);
       setImportBookingRows(parsed);
       setImportBookingStats(null);
     };
