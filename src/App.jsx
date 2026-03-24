@@ -526,6 +526,10 @@ export default function BokuAI() {
   const [importBookingRows, setImportBookingRows] = useState([]);
   const [importBookingLoading, setImportBookingLoading] = useState(false);
   const [importBookingStats, setImportBookingStats] = useState(null);
+
+  // Client table sort
+  const [clientSort, setClientSort] = useState("visitCount");
+  const [clientSortDir, setClientSortDir] = useState("desc");
   
   // New booking form
   const [newBookingForm, setNewBookingForm] = useState({ clientId: "", petId: "", date: new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date()), time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
@@ -1271,14 +1275,40 @@ export default function BokuAI() {
   const today = new Date();
   const isToday = (day, month) => day === today.getDate() && month === today.getMonth() && calYear === today.getFullYear();
   const dayBookings = useMemo(() => selectedDate ? bookings.filter(b => b.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time)) : [], [bookings, selectedDate]);
+  // Calcola visite/spesa/ultima visita da bookings reali (sempre aggiornato)
+  const clientBookingStats = useMemo(() => {
+    const map = {};
+    bookings.forEach(b => {
+      if (!map[b.clientId]) map[b.clientId] = { visitCount: 0, totalSpent: 0, lastVisit: null };
+      if (b.status === "completato") {
+        map[b.clientId].visitCount++;
+        map[b.clientId].totalSpent += Number(b.price) || 0;
+        if (!map[b.clientId].lastVisit || b.date > map[b.clientId].lastVisit) map[b.clientId].lastVisit = b.date;
+      }
+    });
+    return map;
+  }, [bookings]);
+
   const filteredClients = useMemo(() => {
     const list = clientFilter ? clients.filter(c => {
       const q = clientFilter.toLowerCase();
       if (`${c.firstName} ${c.lastName} ${c.phone}`.toLowerCase().includes(q)) return true;
       return (clientPetsMap[c.id] || []).some(p => p.name.toLowerCase().includes(q) || p.breed.toLowerCase().includes(q));
     }) : clients;
-    return [...list].sort((a, b) => b.visitCount - a.visitCount);
-  }, [clients, clientFilter, clientPetsMap]);
+    return [...list].sort((a, b) => {
+      const sa = clientBookingStats[a.id] || {};
+      const sb = clientBookingStats[b.id] || {};
+      let va, vb;
+      if (clientSort === "name") { va = `${a.firstName} ${a.lastName}`; vb = `${b.firstName} ${b.lastName}`; }
+      else if (clientSort === "visitCount") { va = sa.visitCount || 0; vb = sb.visitCount || 0; }
+      else if (clientSort === "totalSpent") { va = sa.totalSpent || 0; vb = sb.totalSpent || 0; }
+      else if (clientSort === "lastVisit") { va = sa.lastVisit || ""; vb = sb.lastVisit || ""; }
+      else { va = 0; vb = 0; }
+      if (va < vb) return clientSortDir === "asc" ? -1 : 1;
+      if (va > vb) return clientSortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [clients, clientFilter, clientPetsMap, clientSort, clientSortDir, clientBookingStats]);
 
   const maxMonthlyRev = Math.max(...dashboardChartData.map(m => m.revenue));
   const SourcePill = ({ source }) => {
@@ -1965,9 +1995,15 @@ export default function BokuAI() {
                   <div className="card" style={{ padding: 0 }}>
                     <table><thead><tr>
                       <th style={{ width: 40, textAlign: "center" }}><input type="checkbox" checked={filteredClients.length > 0 && selectedClientIds.size === filteredClients.length} onChange={() => selectAllClients(filteredClients.map(c => c.id))} style={{ width: 16, height: 16, accentColor: "var(--accent)", cursor: "pointer" }} /></th>
-                      <th>Cliente</th><th>Animali</th><th>Razza</th><th>Taglia</th><th>Visite</th><th>Ciclo</th><th>Stato</th><th>Spesa Tot.</th><th>Ultima Visita</th><th>Canale</th>
+                      {[["name","Cliente"],["","Animali"],["","Razza"],["","Taglia"],["visitCount","Visite"],["","Ciclo"],["","Stato"],["totalSpent","Spesa Tot."],["lastVisit","Ultima Visita"],["","Canale"]].map(([key, label]) => (
+                        <th key={label} onClick={key ? () => { if (clientSort === key) setClientSortDir(d => d === "asc" ? "desc" : "asc"); else { setClientSort(key); setClientSortDir("desc"); } } : undefined}
+                          style={key ? { cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" } : {}}>
+                          {label}{key && clientSort === key ? (clientSortDir === "asc" ? " ▲" : " ▼") : (key ? " ↕" : "")}
+                        </th>
+                      ))}
                     </tr></thead>
                     <tbody>{filteredClients.map(c => {
+                      const cStats = clientBookingStats[c.id] || { visitCount: 0, totalSpent: 0, lastVisit: null };
                       const profile = clientForecast.clientProfiles.find(cp => cp.id === c.id);
                       const cycle = profile?.cycle;
                       const conf = profile?.confidence;
@@ -1984,10 +2020,10 @@ export default function BokuAI() {
                         <td onClick={() => setSelectedClient(c)}>{(clientPetsMap[c.id] || []).map(p => `${ANIMAL_COLORS[p.animalType]?.emoji || "🐾"} ${p.name}`).join(", ") || "—"}</td>
                         <td onClick={() => setSelectedClient(c)}>{(clientPetsMap[c.id] || [])[0]?.breed || "—"}</td>
                         <td onClick={() => setSelectedClient(c)} style={{ textTransform: "capitalize" }}>{(clientPetsMap[c.id] || [])[0]?.size || "—"}</td>
-                        <td onClick={() => setSelectedClient(c)}><span style={{ fontWeight: 700 }}>{c.visitCount}</span></td>
+                        <td onClick={() => setSelectedClient(c)}><span style={{ fontWeight: 700 }}>{cStats.visitCount}</span></td>
                         <td onClick={() => setSelectedClient(c)} style={{ fontWeight: 600 }}>{cycle ? `${cycle}gg` : "—"}</td>
                         <td onClick={() => setSelectedClient(c)}><span className="status-badge" style={{ background: statusBg, color: statusColor }}>{statusLabel}</span></td>
-                        <td onClick={() => setSelectedClient(c)} style={{ fontWeight: 600, color: "var(--accent)" }}>€{c.totalSpent}</td><td onClick={() => setSelectedClient(c)}>{c.lastVisit || "—"}</td><td onClick={() => setSelectedClient(c)}><SourcePill source={c.source} /></td>
+                        <td onClick={() => setSelectedClient(c)} style={{ fontWeight: 600, color: "var(--accent)" }}>€{cStats.totalSpent}</td><td onClick={() => setSelectedClient(c)}>{cStats.lastVisit || "—"}</td><td onClick={() => setSelectedClient(c)}><SourcePill source={c.source} /></td>
                       </tr>);
                     })}</tbody></table>
                   </div>
