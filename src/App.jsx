@@ -292,7 +292,7 @@ label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bott
 .tab.active { background: var(--bg3); color: var(--text); box-shadow: var(--shadow); }
 
 /* Charts */
-.bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 180px; padding-top: 10px; }
+.bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 180px; padding-top: 10px; overflow: hidden; }
 .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 6px; }
 .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 600ms ease; min-height: 2px; }
 .bar:hover { opacity: 0.8; }
@@ -2109,16 +2109,16 @@ export default function BokuAI() {
                 <div className="card">
                   <div className="card-header"><h3>Fatturato vs Margine</h3></div>
                   <div className="bar-chart">
-                    {monthlyData.map((m, i) => (
+                    {(() => { const maxRev = Math.max(...monthlyData.map(m => m.revenue), 1); return monthlyData.map((m, i) => (
                       <div className="bar-col" key={i}>
                         <div className="bar-value" style={{ color: "var(--text-dim)" }}>€{(m.revenue / 1000).toFixed(1)}k</div>
-                        <div style={{ width: "100%", display: "flex", gap: 3, justifyContent: "center", height: `${(m.revenue / maxMonthlyRev) * 140}px` }}>
+                        <div style={{ width: "100%", display: "flex", gap: 3, justifyContent: "center", height: `${(m.revenue / maxRev) * 140}px`, overflow: "hidden" }}>
                           <div className="bar" style={{ flex: 1, background: "var(--accent)", height: "100%", borderRadius: "4px 4px 0 0" }} />
-                          <div className="bar" style={{ flex: 1, background: "var(--purple)", height: `${(m.profit / m.revenue) * 100}%`, borderRadius: "4px 4px 0 0", alignSelf: "flex-end" }} />
+                          <div className="bar" style={{ flex: 1, background: "var(--purple)", height: `${m.revenue > 0 ? (m.profit / m.revenue) * 100 : 0}%`, borderRadius: "4px 4px 0 0", alignSelf: "flex-end" }} />
                         </div>
                         <div className="bar-label">{m.label}</div>
                       </div>
-                    ))}
+                    ))})()}
                   </div>
                   <div style={{ display: "flex", gap: 16, marginTop: 12, justifyContent: "center", fontSize: 12, color: "var(--text-muted)" }}>
                     <span><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 2, background: "var(--accent)", marginRight: 6 }} />Fatturato</span>
