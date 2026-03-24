@@ -901,19 +901,24 @@ export default function BokuAI() {
     return { clientProfiles, monthBuckets, avgCycleAll, activeClients, churnedClients };
   }, [clients, bookings]);
 
-  // Dashboard extended: 6 actual + 2 forecast months
+  // Dashboard: ultimi 6 mesi storici + prossimi 3 mesi forecast
   const dashboardChartData = useMemo(() => {
-    const fcKeys = ["2026-04","2026-05"];
-    const fcLabels = ["Apr","Mag"];
-    const fcMonths = fcKeys.map((key, i) => {
+    const MONTH_NAMES = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+    const hist = monthlyData.slice(-6);
+    const now = new Date();
+    const fcMonths = [];
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = MONTH_NAMES[d.getMonth()];
       const bucket = clientForecast.monthBuckets[key] || { high: [], medium: [], low: [], totalRev: 0 };
       const actualBooked = bookings.filter(b => b.date.startsWith(key) && (b.status === "confermato" || b.status === "in-attesa")).length;
       const actualRev = bookings.filter(b => b.date.startsWith(key) && (b.status === "confermato" || b.status === "in-attesa")).reduce((s, b) => s + b.price, 0);
       const fcCount = bucket.high.length + bucket.medium.length + bucket.low.length;
       const fcRev = Math.round(bucket.totalRev);
-      return { label: fcLabels[i], revenue: actualRev || fcRev, count: actualBooked || fcCount, profit: Math.round((actualRev || fcRev) * 0.68), type: "forecast", booked: actualBooked, forecastCount: fcCount };
-    });
-    return [...monthlyData, ...fcMonths];
+      fcMonths.push({ label, revenue: actualRev || fcRev, count: actualBooked || fcCount, profit: Math.round((actualRev || fcRev) * 0.68), type: "forecast", booked: actualBooked, forecastCount: fcCount });
+    }
+    return [...hist, ...fcMonths];
   }, [monthlyData, clientForecast, bookings]);
 
   // Today's bookings (Italy timezone)
