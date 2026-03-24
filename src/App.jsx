@@ -747,8 +747,27 @@ export default function BokuAI() {
         if (sl.includes("attesa") || sl.includes("pending")) return "in-attesa";
         return "confermato";
       };
+      // Converte DD/MM/YYYY o DD-MM-YYYY → YYYY-MM-DD
+      const normalizeDate = (s) => {
+        if (!s) return "";
+        const str = String(s).trim();
+        // già in formato ISO
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+        // DD/MM/YYYY o DD-MM-YYYY
+        const m = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+        if (m) {
+          const y = m[3].length === 2 ? "20" + m[3] : m[3];
+          return `${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+        }
+        // Numero seriale Excel (giorni dal 1900-01-01)
+        if (/^\d+$/.test(str)) {
+          const d = new Date((parseInt(str) - 25569) * 86400 * 1000);
+          return new Intl.DateTimeFormat("en-CA").format(d);
+        }
+        return str;
+      };
       const parsed = raw.map(row => ({
-        date: col(row, ["data","date"]),
+        date: normalizeDate(col(row, ["data","date"])),
         time: col(row, ["orario","time","ora"]) || "09:00",
         duration: parseInt(col(row, ["duratamin","durata","duration","minuti"])) || 60,
         ownerFirstName: col(row, ["nomeproprietario","nome","firstname"]),
@@ -820,11 +839,11 @@ export default function BokuAI() {
       }
 
       newBookings.push({
-        id: `b_imp_${Date.now()}_${i}`,
+        id: `b_imp_${i}_${Math.random().toString(36).slice(2,8)}`,
         clientId: client.id, clientName: `${client.firstName} ${client.lastName}`.trim() || row.phone,
         petName: row.petName || "—", animalType: row.animalType, breed: row.breed,
         petId: pet?.id || null,
-        serviceId: "", serviceName: "Toelettatura",
+        serviceId: null, serviceName: "Toelettatura",
         date: row.date, time: row.time, duration: row.duration,
         price: row.price, cost: Math.round(row.price * 0.3),
         status: row.status, notes: row.notes,
@@ -834,31 +853,34 @@ export default function BokuAI() {
 
     // Inserisci nuovi clienti e pet
     if (newClients.length) {
-      await supabase.from("clients").insert(newClients.map(c => ({
+      const { error: ce } = await supabase.from("clients").insert(newClients.map(c => ({
         id: c.id, first_name: c.firstName, last_name: c.lastName,
         phone: c.phone, email: c.email, notes: c.notes,
         registered_date: c.registeredDate, total_spent: 0, visit_count: 0,
         last_visit: null, loyalty_points: 0, preferred_day: c.preferredDay,
         source: c.source, rating: c.rating,
       })));
+      if (ce) { console.error("Errore insert clienti:", ce); alert("Errore clienti: " + ce.message); setImportBookingLoading(false); return; }
     }
     if (newPets.length) {
-      await supabase.from("pets").insert(newPets.map(p => ({
+      const { error: pe } = await supabase.from("pets").insert(newPets.map(p => ({
         id: p.id, client_id: p.clientId, name: p.name, animal_type: p.animalType,
         breed: p.breed, size: p.size, mordace: p.mordace, notes: p.notes,
       })));
+      if (pe) { console.error("Errore insert pets:", pe); alert("Errore animali: " + pe.message); setImportBookingLoading(false); return; }
     }
 
     // Inserisci booking in batch da 200
     for (let i = 0; i < newBookings.length; i += 200) {
-      await supabase.from("bookings").insert(newBookings.slice(i, i + 200).map(b => ({
+      const { error: be } = await supabase.from("bookings").insert(newBookings.slice(i, i + 200).map(b => ({
         id: b.id, client_id: b.clientId, client_name: b.clientName,
         pet_name: b.petName, animal_type: b.animalType, breed: b.breed,
-        pet_id: b.petId, service_id: b.serviceId || null, service_name: b.serviceName,
+        pet_id: b.petId, service_id: b.serviceId, service_name: b.serviceName,
         date: b.date, time: b.time, duration: b.duration,
         price: b.price, cost: b.cost, status: b.status,
         notes: b.notes, created_via: b.createdVia, reminder_sent: false, payment: b.payment,
       })));
+      if (be) { console.error(`Errore insert bookings batch ${i}:`, be); alert("Errore appuntamenti: " + be.message); setImportBookingLoading(false); return; }
     }
 
     // Aggiorna stats clienti (total_spent, visit_count, last_visit)
