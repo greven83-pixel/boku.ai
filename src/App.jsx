@@ -108,11 +108,16 @@ function generateData() {
 const dbToClient = (c) => ({
   id: c.id, firstName: c.first_name, lastName: c.last_name,
   phone: c.phone || "", email: c.email || "",
-  animalType: c.animal_type, petName: c.pet_name, breed: c.breed, size: c.size,
   notes: c.notes || "", registeredDate: c.registered_date,
   totalSpent: Number(c.total_spent) || 0, visitCount: c.visit_count || 0,
   lastVisit: c.last_visit, loyaltyPoints: c.loyalty_points || 0,
-  preferredDay: c.preferred_day, source: c.source, rating: c.rating, mordace: c.mordace || false,
+  preferredDay: c.preferred_day, source: c.source, rating: c.rating,
+});
+
+const dbToPet = (p) => ({
+  id: p.id, clientId: p.client_id, name: p.name,
+  animalType: p.animal_type || "cane", breed: p.breed || "Meticcio",
+  size: p.size || "media", mordace: p.mordace || false, notes: p.notes || "",
 });
 
 const dbToBooking = (b) => ({
@@ -399,6 +404,7 @@ select option { background: var(--bg3); color: var(--text); }
 export default function BokuAI() {
   const [clients, setClients] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [pets, setPets] = useState([]);
   const [services, setServices] = useState(SERVICES);
   const [loading, setLoading] = useState(true);
 
@@ -416,12 +422,14 @@ export default function BokuAI() {
       return all;
     }
     async function loadData() {
-      const [c, b] = await Promise.all([
+      const [c, b, p] = await Promise.all([
         fetchAll('clients', supabase.from('clients').select('*')),
         fetchAll('bookings', supabase.from('bookings').select('*').order('date').order('time')),
+        fetchAll('pets', supabase.from('pets').select('*')),
       ]);
       setClients(c.map(dbToClient));
       setBookings(b.map(dbToBooking));
+      setPets(p.map(dbToPet));
       setLoading(false);
     }
     loadData();
@@ -502,15 +510,20 @@ export default function BokuAI() {
   }, [dragState]);
   
   // New client form
-  const emptyClient = { firstName: "", lastName: "", phone: "", email: "", petName: "", breed: "", animalType: "cane", size: "media", notes: "", mordace: false };
+  const emptyClient = { firstName: "", lastName: "", phone: "", email: "", petName: "", petAnimalType: "cane", petBreed: "", petSize: "media", petMordace: false };
   const [newClientForm, setNewClientForm] = useState(emptyClient);
+
+  // Pet management
+  const emptyPet = { name: "", animalType: "cane", breed: "", size: "media", mordace: false };
+  const [newPetForm, setNewPetForm] = useState(emptyPet);
+  const [showAddPet, setShowAddPet] = useState(null); // clientId
 
   // Bulk import
   const [importRows, setImportRows] = useState([]);
   const [importLoading, setImportLoading] = useState(false);
   
   // New booking form
-  const [newBookingForm, setNewBookingForm] = useState({ clientId: "", date: new Date().toISOString().slice(0,10), time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
+  const [newBookingForm, setNewBookingForm] = useState({ clientId: "", petId: "", date: new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date()), time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
   
   // Edit booking
   const [editingBooking, setEditingBooking] = useState(null);
@@ -521,13 +534,11 @@ export default function BokuAI() {
   const clientSearchResults = useMemo(() => {
     if (!clientSearch.trim()) return clients.slice(0, 8);
     const q = clientSearch.toLowerCase();
-    return clients.filter(c =>
-      `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
-      c.petName.toLowerCase().includes(q) ||
-      c.breed.toLowerCase().includes(q) ||
-      c.phone.includes(q)
-    ).slice(0, 8);
-  }, [clientSearch, clients]);
+    return clients.filter(c => {
+      if (`${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || c.phone.includes(q)) return true;
+      return (clientPetsMap[c.id] || []).some(p => p.name.toLowerCase().includes(q) || p.breed.toLowerCase().includes(q));
+    }).slice(0, 8);
+  }, [clientSearch, clients, clientPetsMap]);
 
   const selectedClientForBooking = clients.find(c => c.id === newBookingForm.clientId);
 
@@ -567,25 +578,57 @@ export default function BokuAI() {
   const addClient = async () => {
     const f = newClientForm;
     if (!f.firstName || !f.lastName || !f.petName) return;
+    const clientId = `c${Date.now()}`;
+    const petId = `p_${clientId}`;
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
     const newC = {
-      id: `c${Date.now()}`, firstName: f.firstName, lastName: f.lastName,
+      id: clientId, firstName: f.firstName, lastName: f.lastName,
       phone: f.phone || "", email: f.email || `${f.firstName.toLowerCase()}.${f.lastName.toLowerCase()}@email.it`,
-      animalType: f.animalType || "cane", petName: f.petName, breed: f.breed || "Meticcio", size: f.size || "media",
-      notes: f.notes || "", registeredDate: new Date().toISOString().slice(0, 10),
+      notes: "", registeredDate: today,
       totalSpent: 0, visitCount: 0, lastVisit: null, loyaltyPoints: 0,
-      preferredDay: "Lunedì", source: "online", rating: 5, mordace: f.mordace || false,
+      preferredDay: "Lunedì", source: "online", rating: 5,
+    };
+    const newPet = {
+      id: petId, clientId, name: f.petName, animalType: f.petAnimalType || "cane",
+      breed: f.petBreed || "Meticcio", size: f.petSize || "media", mordace: f.petMordace || false, notes: "",
     };
     await supabase.from('clients').insert({
       id: newC.id, first_name: newC.firstName, last_name: newC.lastName,
-      phone: newC.phone, email: newC.email, animal_type: newC.animalType,
-      pet_name: newC.petName, breed: newC.breed, size: newC.size, notes: newC.notes,
+      phone: newC.phone, email: newC.email, notes: newC.notes,
       registered_date: newC.registeredDate, total_spent: 0, visit_count: 0,
       last_visit: null, loyalty_points: 0, preferred_day: newC.preferredDay,
-      source: newC.source, rating: newC.rating, mordace: newC.mordace,
+      source: newC.source, rating: newC.rating,
+    });
+    await supabase.from('pets').insert({
+      id: newPet.id, client_id: newPet.clientId, name: newPet.name,
+      animal_type: newPet.animalType, breed: newPet.breed, size: newPet.size,
+      mordace: newPet.mordace, notes: newPet.notes,
     });
     setClients(prev => [...prev, newC]);
+    setPets(prev => [...prev, newPet]);
     setNewClientForm(emptyClient);
     setShowModal(null);
+  };
+
+  // CRUD: Add / Delete pet
+  const addPet = async (clientId) => {
+    const f = newPetForm;
+    if (!f.name) return;
+    const newP = {
+      id: `p${Date.now()}`, clientId, name: f.name,
+      animalType: f.animalType || "cane", breed: f.breed || "Meticcio",
+      size: f.size || "media", mordace: f.mordace || false, notes: "",
+    };
+    await supabase.from('pets').insert({ id: newP.id, client_id: newP.clientId, name: newP.name, animal_type: newP.animalType, breed: newP.breed, size: newP.size, mordace: newP.mordace, notes: newP.notes });
+    setPets(prev => [...prev, newP]);
+    setNewPetForm(emptyPet);
+    setShowAddPet(null);
+  };
+
+  const deletePet = async (petId) => {
+    if (!confirm("Eliminare questo animale?")) return;
+    await supabase.from('pets').delete().eq('id', petId);
+    setPets(prev => prev.filter(p => p.id !== petId));
   };
 
   // BULK IMPORT: parse file into rows
@@ -624,20 +667,28 @@ export default function BokuAI() {
       id: `c${Date.now()}${i}`,
       firstName: r.firstName, lastName: r.lastName,
       phone: r.phone || "", email: r.email || `${r.firstName.toLowerCase()}.${r.lastName.toLowerCase()}@email.it`,
-      animalType: r.animalType || "cane", petName: r.petName || "—", breed: r.breed || "Meticcio",
-      size: r.size || "media", notes: r.notes || "", registeredDate: today,
+      notes: r.notes || "", registeredDate: today,
       totalSpent: 0, visitCount: 0, lastVisit: null, loyaltyPoints: 0,
-      preferredDay: "Lunedì", source: "import", rating: 5, mordace: false,
+      preferredDay: "Lunedì", source: "import", rating: 5,
+    }));
+    const newPets = importRows.map((r, i) => ({
+      id: `p_${newClients[i].id}`, clientId: newClients[i].id,
+      name: r.petName || "—", animalType: r.animalType || "cane",
+      breed: r.breed || "Meticcio", size: r.size || "media", mordace: false, notes: "",
     }));
     await supabase.from("clients").insert(newClients.map(c => ({
       id: c.id, first_name: c.firstName, last_name: c.lastName,
-      phone: c.phone, email: c.email, animal_type: c.animalType,
-      pet_name: c.petName, breed: c.breed, size: c.size, notes: c.notes,
+      phone: c.phone, email: c.email, notes: c.notes,
       registered_date: c.registeredDate, total_spent: 0, visit_count: 0,
       last_visit: null, loyalty_points: 0, preferred_day: c.preferredDay,
-      source: c.source, rating: c.rating, mordace: c.mordace,
+      source: c.source, rating: c.rating,
+    })));
+    await supabase.from("pets").insert(newPets.map(p => ({
+      id: p.id, client_id: p.clientId, name: p.name, animal_type: p.animalType,
+      breed: p.breed, size: p.size, mordace: p.mordace, notes: p.notes,
     })));
     setClients(prev => [...prev, ...newClients]);
+    setPets(prev => [...prev, ...newPets]);
     setImportRows([]);
     setImportLoading(false);
     setShowModal(null);
@@ -662,22 +713,25 @@ export default function BokuAI() {
     if (!client || !service) return;
     const finalPrice = f.price !== "" ? Number(f.price) : service.price;
     const finalDuration = f.duration !== "" ? Number(f.duration) : service.duration;
+    const pet = pets.find(p => p.id === f.petId) || (clientPetsMap[client.id] || [])[0];
     const newB = {
       id: `b${Date.now()}`, clientId: client.id, clientName: `${client.firstName} ${client.lastName}`,
-      petName: client.petName, animalType: client.animalType || "cane", breed: client.breed, serviceId: service.id, serviceName: service.name,
+      petName: pet?.name || "", animalType: pet?.animalType || "cane", breed: pet?.breed || "",
+      serviceId: service.id, serviceName: service.name,
       date: f.date, time: f.time, duration: finalDuration, price: finalPrice, cost: service.cost,
       status: "confermato", notes: f.notes || "", createdVia: "online", reminderSent: false, payment: f.payment || "",
     };
     await supabase.from('bookings').insert({
       id: newB.id, client_id: newB.clientId, client_name: newB.clientName,
       pet_name: newB.petName, animal_type: newB.animalType, breed: newB.breed,
+      pet_id: pet?.id || null,
       service_id: newB.serviceId, service_name: newB.serviceName,
       date: newB.date, time: newB.time, duration: newB.duration,
       price: newB.price, cost: newB.cost, status: newB.status,
       notes: newB.notes, created_via: newB.createdVia, reminder_sent: false, payment: newB.payment,
     });
     setBookings(prev => [...prev, newB].sort((a, b) => a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date)));
-    setNewBookingForm({ clientId: "", date: f.date, time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
+    setNewBookingForm({ clientId: "", petId: "", date: f.date, time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
     setShowModal(null);
   };
 
@@ -983,10 +1037,20 @@ export default function BokuAI() {
   const today = new Date();
   const isToday = (day, month) => day === today.getDate() && month === today.getMonth() && calYear === today.getFullYear();
   const dayBookings = useMemo(() => selectedDate ? bookings.filter(b => b.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time)) : [], [bookings, selectedDate]);
+  const clientPetsMap = useMemo(() => {
+    const map = {};
+    pets.forEach(p => { if (!map[p.clientId]) map[p.clientId] = []; map[p.clientId].push(p); });
+    return map;
+  }, [pets]);
+
   const filteredClients = useMemo(() => {
-    const list = clientFilter ? clients.filter(c => `${c.firstName} ${c.lastName} ${c.petName} ${c.breed} ${c.phone}`.toLowerCase().includes(clientFilter.toLowerCase())) : clients;
+    const list = clientFilter ? clients.filter(c => {
+      const q = clientFilter.toLowerCase();
+      if (`${c.firstName} ${c.lastName} ${c.phone}`.toLowerCase().includes(q)) return true;
+      return (clientPetsMap[c.id] || []).some(p => p.name.toLowerCase().includes(q) || p.breed.toLowerCase().includes(q));
+    }) : clients;
     return [...list].sort((a, b) => b.visitCount - a.visitCount);
-  }, [clients, clientFilter]);
+  }, [clients, clientFilter, clientPetsMap]);
 
   const maxMonthlyRev = Math.max(...dashboardChartData.map(m => m.revenue));
   const SourcePill = ({ source }) => {
@@ -1474,17 +1538,61 @@ export default function BokuAI() {
                     <div className="card">
                       <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{selectedClient.firstName} {selectedClient.lastName}</h3>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                        {[["Telefono", selectedClient.phone],["Email", selectedClient.email],[(ANIMAL_COLORS[selectedClient.animalType]?.emoji || "🐾") + " Animale", selectedClient.petName],["Specie", selectedClient.animalType],["Razza", selectedClient.breed],["Taglia", selectedClient.size],["Canale", null],["Giorno Pref.", selectedClient.preferredDay],["Registrato", selectedClient.registeredDate]].map(([l, v], i) => (
-                          <div key={i}><label>{l}</label>{i === 5 ? <SourcePill source={selectedClient.source} /> : <div style={{ fontSize: 13, textTransform: i === 4 ? "capitalize" : "none" }}>{v}</div>}</div>
+                        {[["Telefono", selectedClient.phone],["Email", selectedClient.email],["Canale", null],["Giorno Pref.", selectedClient.preferredDay],["Registrato", selectedClient.registeredDate]].map(([l, v], i) => (
+                          <div key={i}><label>{l}</label>{i === 2 ? <SourcePill source={selectedClient.source} /> : <div style={{ fontSize: 13 }}>{v}</div>}</div>
                         ))}
                       </div>
-                      {selectedClient.notes && <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--warning-dim)", borderRadius: 8, fontSize: 13, color: "var(--warning)" }}>⚠️ {selectedClient.notes}</div>}
-                      {selectedClient.mordace && <div style={{ marginTop: 10, padding: "10px 14px", background: "var(--danger-dim)", borderRadius: 8, fontSize: 13, color: "var(--danger)", display: "flex", alignItems: "center", gap: 8 }}>🦷 Cane mordace — maneggiare con cautela</div>}
-                      <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
-                        <label style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                          <input type="checkbox" checked={!!selectedClient.mordace} onChange={async e => { const val = e.target.checked; await supabase.from('clients').update({ mordace: val }).eq('id', selectedClient.id); setClients(prev => prev.map(c => c.id === selectedClient.id ? { ...c, mordace: val } : c)); setSelectedClient(sc => ({ ...sc, mordace: val })); }} style={{ width: 18, height: 18, accentColor: "var(--danger)", cursor: "pointer" }} />
-                          <span style={{ fontSize: 13, color: "var(--text-dim)" }}>Cane mordace</span>
-                        </label>
+
+                      {/* PETS SECTION */}
+                      <div style={{ marginTop: 18, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700 }}>🐾 Animali</div>
+                          <button className="btn btn-sm" onClick={() => { setNewPetForm(emptyPet); setShowAddPet(selectedClient.id); }}><Icon name="plus" size={13} /> Aggiungi</button>
+                        </div>
+                        {(clientPetsMap[selectedClient.id] || []).map(pet => (
+                          <div key={pet.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: "var(--bg3)", borderRadius: 8, marginBottom: 6 }}>
+                            <div style={{ fontSize: 22, lineHeight: 1 }}>{ANIMAL_COLORS[pet.animalType]?.emoji || "🐾"}</div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 600, fontSize: 13 }}>{pet.name}</div>
+                              <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "capitalize" }}>{pet.animalType} · {pet.breed} · {pet.size}</div>
+                            </div>
+                            <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 11 }}>
+                              <input type="checkbox" checked={pet.mordace} onChange={async e => { const val = e.target.checked; await supabase.from('pets').update({ mordace: val }).eq('id', pet.id); setPets(prev => prev.map(p => p.id === pet.id ? { ...p, mordace: val } : p)); }} style={{ width: 14, height: 14, accentColor: "var(--danger)" }} />
+                              <span style={{ color: "var(--danger)" }}>mordace</span>
+                            </label>
+                            <button className="btn btn-sm" style={{ color: "var(--danger)", borderColor: "transparent", padding: "2px 6px" }} onClick={() => deletePet(pet.id)}><Icon name="x" size={12} /></button>
+                          </div>
+                        ))}
+                        {(clientPetsMap[selectedClient.id] || []).length === 0 && (
+                          <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>Nessun animale registrato</div>
+                        )}
+                        {(clientPetsMap[selectedClient.id] || []).some(p => p.mordace) && (
+                          <div style={{ marginTop: 8, padding: "8px 12px", background: "var(--danger-dim)", borderRadius: 8, fontSize: 12, color: "var(--danger)" }}>🦷 Attenzione: uno o più animali di questo cliente sono mordaci</div>
+                        )}
+
+                        {showAddPet === selectedClient.id && (
+                          <div style={{ marginTop: 10, padding: 12, background: "var(--bg-card)", borderRadius: 8, border: "1px solid var(--border)" }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>Nuovo animale</div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                              <div><label style={{ fontSize: 11 }}>Nome *</label><input placeholder="Luna" value={newPetForm.name} onChange={e => setNewPetForm(f => ({ ...f, name: e.target.value }))} style={{ fontSize: 12 }} /></div>
+                              <div><label style={{ fontSize: 11 }}>Tipo</label>
+                                <select value={newPetForm.animalType} onChange={e => setNewPetForm(f => ({ ...f, animalType: e.target.value }))} style={{ fontSize: 12 }}>
+                                  <option value="cane">🐕 Cane</option><option value="gatto">🐈 Gatto</option><option value="coniglio">🐇 Coniglio</option><option value="uccello">🦜 Uccello</option><option value="rettile">🦎 Rettile</option><option value="altro">🐾 Altro</option>
+                                </select>
+                              </div>
+                              <div><label style={{ fontSize: 11 }}>Razza</label><input placeholder="Meticcio" value={newPetForm.breed} onChange={e => setNewPetForm(f => ({ ...f, breed: e.target.value }))} style={{ fontSize: 12 }} /></div>
+                              <div><label style={{ fontSize: 11 }}>Taglia</label>
+                                <select value={newPetForm.size} onChange={e => setNewPetForm(f => ({ ...f, size: e.target.value }))} style={{ fontSize: 12 }}>
+                                  <option value="piccola">Piccola</option><option value="media">Media</option><option value="grande">Grande</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button className="btn btn-sm" onClick={() => setShowAddPet(null)}>Annulla</button>
+                              <button className="btn btn-primary btn-sm" disabled={!newPetForm.name} onClick={() => addPet(selectedClient.id)}><Icon name="check" size={12} /> Salva</button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="card">
@@ -1628,7 +1736,7 @@ export default function BokuAI() {
                   <div className="card" style={{ padding: 0 }}>
                     <table><thead><tr>
                       <th style={{ width: 40, textAlign: "center" }}><input type="checkbox" checked={filteredClients.length > 0 && selectedClientIds.size === filteredClients.length} onChange={() => selectAllClients(filteredClients.map(c => c.id))} style={{ width: 16, height: 16, accentColor: "var(--accent)", cursor: "pointer" }} /></th>
-                      <th>Cliente</th><th>Cane</th><th>Razza</th><th>Taglia</th><th>Visite</th><th>Ciclo</th><th>Stato</th><th>Spesa Tot.</th><th>Ultima Visita</th><th>Canale</th>
+                      <th>Cliente</th><th>Animali</th><th>Razza</th><th>Taglia</th><th>Visite</th><th>Ciclo</th><th>Stato</th><th>Spesa Tot.</th><th>Ultima Visita</th><th>Canale</th>
                     </tr></thead>
                     <tbody>{filteredClients.map(c => {
                       const profile = clientForecast.clientProfiles.find(cp => cp.id === c.id);
@@ -1643,7 +1751,10 @@ export default function BokuAI() {
                       return (
                       <tr key={c.id} style={{ cursor: "pointer", background: selectedClientIds.has(c.id) ? "var(--danger-dim)" : undefined }}>
                         <td style={{ textAlign: "center" }} onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedClientIds.has(c.id)} onChange={() => toggleClientSelect(c.id)} style={{ width: 16, height: 16, accentColor: "var(--accent)", cursor: "pointer" }} /></td>
-                        <td style={{ fontWeight: 500 }} onClick={() => setSelectedClient(c)}>{c.firstName} {c.lastName}</td><td onClick={() => setSelectedClient(c)}>{c.petName}</td><td onClick={() => setSelectedClient(c)}>{c.breed}</td><td onClick={() => setSelectedClient(c)} style={{ textTransform: "capitalize" }}>{c.size}</td>
+                        <td style={{ fontWeight: 500 }} onClick={() => setSelectedClient(c)}>{c.firstName} {c.lastName}</td>
+                        <td onClick={() => setSelectedClient(c)}>{(clientPetsMap[c.id] || []).map(p => `${ANIMAL_COLORS[p.animalType]?.emoji || "🐾"} ${p.name}`).join(", ") || "—"}</td>
+                        <td onClick={() => setSelectedClient(c)}>{(clientPetsMap[c.id] || [])[0]?.breed || "—"}</td>
+                        <td onClick={() => setSelectedClient(c)} style={{ textTransform: "capitalize" }}>{(clientPetsMap[c.id] || [])[0]?.size || "—"}</td>
                         <td onClick={() => setSelectedClient(c)}><span style={{ fontWeight: 700 }}>{c.visitCount}</span></td>
                         <td onClick={() => setSelectedClient(c)} style={{ fontWeight: 600 }}>{cycle ? `${cycle}gg` : "—"}</td>
                         <td onClick={() => setSelectedClient(c)}><span className="status-badge" style={{ background: statusBg, color: statusColor }}>{statusLabel}</span></td>
@@ -2123,9 +2234,9 @@ export default function BokuAI() {
                     <div className="client-picker-selected">
                       <div className="cps-info">
                         <div className="cps-name">{selectedClientForBooking.firstName} {selectedClientForBooking.lastName}</div>
-                        <div className="cps-detail">{selectedClientForBooking.petName} ({selectedClientForBooking.breed}) • {selectedClientForBooking.phone}</div>
+                        <div className="cps-detail">{(clientPetsMap[selectedClientForBooking.id] || []).map(p => `${ANIMAL_COLORS[p.animalType]?.emoji || "🐾"} ${p.name}`).join(", ") || "—"} • {selectedClientForBooking.phone}</div>
                       </div>
-                      <button className="cps-clear" onClick={() => { setNewBookingForm(f => ({ ...f, clientId: "" })); setClientSearch(""); }}><Icon name="x" size={16} /></button>
+                      <button className="cps-clear" onClick={() => { setNewBookingForm(f => ({ ...f, clientId: "", petId: "" })); setClientSearch(""); }}><Icon name="x" size={16} /></button>
                     </div>
                   ) : (
                     <div className="client-picker-input">
@@ -2142,11 +2253,16 @@ export default function BokuAI() {
                     <div className="client-picker-dropdown">
                       {clientSearchResults.length > 0 ? clientSearchResults.map(c => (
                         <div key={c.id} className={`client-picker-item ${newBookingForm.clientId === c.id ? "selected" : ""}`}
-                          onClick={() => { setNewBookingForm(f => ({ ...f, clientId: c.id })); setShowClientDropdown(false); setClientSearch(""); }}>
+                          onClick={() => {
+                            const cPets = clientPetsMap[c.id] || [];
+                            const autoPetId = cPets.length === 1 ? cPets[0].id : "";
+                            setNewBookingForm(f => ({ ...f, clientId: c.id, petId: autoPetId }));
+                            setShowClientDropdown(false); setClientSearch("");
+                          }}>
                           <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--accent-dim)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "var(--accent)", flexShrink: 0 }}>{c.firstName[0]}{c.lastName[0]}</div>
                           <div>
                             <div className="cpi-name">{c.firstName} {c.lastName}</div>
-                            <div className="cpi-dog">{c.petName} <span className="cpi-breed">• {c.breed} • {c.size}</span></div>
+                            <div className="cpi-dog">{(clientPetsMap[c.id] || []).map(p => `${ANIMAL_COLORS[p.animalType]?.emoji || "🐾"} ${p.name}`).join(" · ") || "—"}</div>
                           </div>
                         </div>
                       )) : (
@@ -2161,6 +2277,17 @@ export default function BokuAI() {
                   )}
                 </div>
               </div>
+              {selectedClientForBooking && (clientPetsMap[selectedClientForBooking.id] || []).length > 1 && (
+                <div className="form-group">
+                  <label>Animale *</label>
+                  <select value={newBookingForm.petId} onChange={e => setNewBookingForm(f => ({ ...f, petId: e.target.value }))}>
+                    <option value="">Seleziona animale...</option>
+                    {(clientPetsMap[selectedClientForBooking.id] || []).map(p => (
+                      <option key={p.id} value={p.id}>{ANIMAL_COLORS[p.animalType]?.emoji} {p.name} ({p.breed})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="form-row">
                 <div><label>Data *</label><input type="date" value={newBookingForm.date} onChange={e => setNewBookingForm(f => ({ ...f, date: e.target.value }))} /></div>
                 <div><label>Ora *</label><input type="time" value={newBookingForm.time} onChange={e => setNewBookingForm(f => ({ ...f, time: e.target.value }))} /></div>
@@ -2218,7 +2345,7 @@ export default function BokuAI() {
               </div>
               <div style={{ padding: "10px 14px", background: "var(--bg3)", borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
                 <span style={{ fontWeight: 600 }}>{clients.find(c => c.id === editBookingForm.clientId)?.firstName} {clients.find(c => c.id === editBookingForm.clientId)?.lastName}</span>
-                <span style={{ color: "var(--text-muted)" }}> — {clients.find(c => c.id === editBookingForm.clientId)?.petName}</span>
+                <span style={{ color: "var(--text-muted)" }}> — {(clientPetsMap[editBookingForm.clientId] || []).map(p => p.name).join(", ") || bookings.find(b => b.id === editBookingForm.id)?.petName || "—"}</span>
               </div>
               <div className="form-row">
                 <div><label>Data</label><input type="date" value={editBookingForm.date} onChange={e => setEditBookingForm(f => ({ ...f, date: e.target.value }))} /></div>
@@ -2283,25 +2410,26 @@ export default function BokuAI() {
                 <div><label>Telefono</label><input placeholder="+39 320 123 4567" value={newClientForm.phone} onChange={e => setNewClientForm(f => ({ ...f, phone: e.target.value }))} /></div>
                 <div><label>Email</label><input placeholder="marco.rossi@email.it" value={newClientForm.email} onChange={e => setNewClientForm(f => ({ ...f, email: e.target.value }))} /></div>
               </div>
-              <div className="form-row">
-                <div><label>Tipo Animale</label><select value={newClientForm.animalType} onChange={e => setNewClientForm(f => ({ ...f, animalType: e.target.value }))}><option value="cane">🐕 Cane</option><option value="gatto">🐈 Gatto</option><option value="coniglio">🐇 Coniglio</option><option value="uccello">🦜 Uccello</option><option value="rettile">🦎 Rettile</option><option value="altro">🐾 Altro</option></select></div>
-                <div><label>Nome Animale *</label><input placeholder="Luna" value={newClientForm.petName} onChange={e => setNewClientForm(f => ({ ...f, petName: e.target.value }))} /></div>
-              </div>
-              <div className="form-row">
-                <div><label>Taglia</label>
-                  <select value={newClientForm.size} onChange={e => setNewClientForm(f => ({ ...f, size: e.target.value }))}>
-                    <option value="piccola">Piccola</option>
-                    <option value="media">Media</option>
-                    <option value="grande">Grande</option>
-                  </select>
+              <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 14, marginBottom: 4 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>🐾 Primo animale</div>
+                <div className="form-row">
+                  <div><label>Tipo</label><select value={newClientForm.petAnimalType} onChange={e => setNewClientForm(f => ({ ...f, petAnimalType: e.target.value }))}><option value="cane">🐕 Cane</option><option value="gatto">🐈 Gatto</option><option value="coniglio">🐇 Coniglio</option><option value="uccello">🦜 Uccello</option><option value="rettile">🦎 Rettile</option><option value="altro">🐾 Altro</option></select></div>
+                  <div><label>Nome *</label><input placeholder="Luna" value={newClientForm.petName} onChange={e => setNewClientForm(f => ({ ...f, petName: e.target.value }))} /></div>
                 </div>
-                <div><label>Note</label><input placeholder="Allergie, comportamento..." value={newClientForm.notes} onChange={e => setNewClientForm(f => ({ ...f, notes: e.target.value }))} /></div>
-              </div>
-              <div style={{ marginTop: 4 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", margin: 0 }}>
-                  <input type="checkbox" checked={!!newClientForm.mordace} onChange={e => setNewClientForm(f => ({ ...f, mordace: e.target.checked }))} style={{ width: 18, height: 18, accentColor: "var(--danger)", cursor: "pointer" }} />
-                  <span style={{ fontSize: 13, color: "var(--danger)" }}>🦷 Cane mordace</span>
-                </label>
+                <div className="form-row">
+                  <div><label>Razza</label><input placeholder="Meticcio" value={newClientForm.petBreed} onChange={e => setNewClientForm(f => ({ ...f, petBreed: e.target.value }))} /></div>
+                  <div><label>Taglia</label>
+                    <select value={newClientForm.petSize} onChange={e => setNewClientForm(f => ({ ...f, petSize: e.target.value }))}>
+                      <option value="piccola">Piccola</option><option value="media">Media</option><option value="grande">Grande</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ marginTop: 4 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", margin: 0 }}>
+                    <input type="checkbox" checked={!!newClientForm.petMordace} onChange={e => setNewClientForm(f => ({ ...f, petMordace: e.target.checked }))} style={{ width: 16, height: 16, accentColor: "var(--danger)", cursor: "pointer" }} />
+                    <span style={{ fontSize: 13, color: "var(--danger)" }}>🦷 Mordace</span>
+                  </label>
+                </div>
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
                 <button className="btn" onClick={() => { setNewClientForm(emptyClient); setShowModal(null); }}>Annulla</button>
@@ -2389,39 +2517,41 @@ export default function BokuAI() {
                 <div><label>Telefono</label><input placeholder="+39 320 123 4567" value={newClientForm.phone} onChange={e => setNewClientForm(f => ({ ...f, phone: e.target.value }))} /></div>
                 <div><label>Email</label><input placeholder="marco@email.it" value={newClientForm.email} onChange={e => setNewClientForm(f => ({ ...f, email: e.target.value }))} /></div>
               </div>
-              <div className="form-row">
-                <div><label>Tipo Animale</label><select value={newClientForm.animalType} onChange={e => setNewClientForm(f => ({ ...f, animalType: e.target.value }))}><option value="cane">🐕 Cane</option><option value="gatto">🐈 Gatto</option><option value="coniglio">🐇 Coniglio</option><option value="uccello">🦜 Uccello</option><option value="rettile">🦎 Rettile</option><option value="altro">🐾 Altro</option></select></div>
-                <div><label>Nome Animale *</label><input placeholder="Luna" value={newClientForm.petName} onChange={e => setNewClientForm(f => ({ ...f, petName: e.target.value }))} /></div>
-              </div>
-              <div className="form-row">
-                <div><label>Taglia</label>
-                  <select value={newClientForm.size} onChange={e => setNewClientForm(f => ({ ...f, size: e.target.value }))}>
-                    <option value="piccola">Piccola</option><option value="media">Media</option><option value="grande">Grande</option>
-                  </select>
+              <div style={{ marginTop: 14, borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 4 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>🐾 Primo animale</div>
+                <div className="form-row">
+                  <div><label>Tipo</label><select value={newClientForm.petAnimalType} onChange={e => setNewClientForm(f => ({ ...f, petAnimalType: e.target.value }))}><option value="cane">🐕 Cane</option><option value="gatto">🐈 Gatto</option><option value="coniglio">🐇 Coniglio</option><option value="uccello">🦜 Uccello</option><option value="rettile">🦎 Rettile</option><option value="altro">🐾 Altro</option></select></div>
+                  <div><label>Nome *</label><input placeholder="Luna" value={newClientForm.petName} onChange={e => setNewClientForm(f => ({ ...f, petName: e.target.value }))} /></div>
                 </div>
-                <div><label>Note</label><input placeholder="Allergie, comportamento..." value={newClientForm.notes} onChange={e => setNewClientForm(f => ({ ...f, notes: e.target.value }))} /></div>
+                <div className="form-row">
+                  <div><label>Razza</label><input placeholder="Meticcio" value={newClientForm.petBreed} onChange={e => setNewClientForm(f => ({ ...f, petBreed: e.target.value }))} /></div>
+                  <div><label>Taglia</label>
+                    <select value={newClientForm.petSize} onChange={e => setNewClientForm(f => ({ ...f, petSize: e.target.value }))}>
+                      <option value="piccola">Piccola</option><option value="media">Media</option><option value="grande">Grande</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div style={{ marginTop: 4 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", margin: 0 }}>
-                  <input type="checkbox" checked={!!newClientForm.mordace} onChange={e => setNewClientForm(f => ({ ...f, mordace: e.target.checked }))} style={{ width: 18, height: 18, accentColor: "var(--danger)", cursor: "pointer" }} />
-                  <span style={{ fontSize: 13, color: "var(--danger)" }}>🦷 Cane mordace</span>
-                </label>
-              </div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
                 <button className="btn" onClick={() => { setShowModal("new"); setNewClientForm(emptyClient); }}>Annulla</button>
-                <button className="btn btn-primary" disabled={!newClientForm.firstName || !newClientForm.lastName || !newClientForm.petName} onClick={() => {
+                <button className="btn btn-primary" disabled={!newClientForm.firstName || !newClientForm.lastName || !newClientForm.petName} onClick={async () => {
                   const f = newClientForm;
                   const newId = `c${Date.now()}`;
+                  const petId = `p_${newId}`;
+                  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
                   const newC = {
                     id: newId, firstName: f.firstName, lastName: f.lastName,
                     phone: f.phone || "", email: f.email || `${f.firstName.toLowerCase()}.${f.lastName.toLowerCase()}@email.it`,
-                    petName: f.petName, breed: f.breed || "Meticcio", size: f.size || "media",
-                    notes: f.notes || "", registeredDate: new Date().toISOString().slice(0, 10),
+                    notes: "", registeredDate: today,
                     totalSpent: 0, visitCount: 0, lastVisit: null, loyaltyPoints: 0,
-                    preferredDay: "Lunedì", source: "online", rating: 5, mordace: f.mordace || false,
+                    preferredDay: "Lunedì", source: "online", rating: 5,
                   };
+                  const newPet = { id: petId, clientId: newId, name: f.petName, animalType: f.petAnimalType || "cane", breed: f.petBreed || "Meticcio", size: f.petSize || "media", mordace: false, notes: "" };
+                  await supabase.from('clients').insert({ id: newC.id, first_name: newC.firstName, last_name: newC.lastName, phone: newC.phone, email: newC.email, notes: newC.notes, registered_date: newC.registeredDate, total_spent: 0, visit_count: 0, last_visit: null, loyalty_points: 0, preferred_day: newC.preferredDay, source: newC.source, rating: newC.rating });
+                  await supabase.from('pets').insert({ id: newPet.id, client_id: newPet.clientId, name: newPet.name, animal_type: newPet.animalType, breed: newPet.breed, size: newPet.size, mordace: newPet.mordace, notes: newPet.notes });
                   setClients(prev => [...prev, newC]);
-                  setNewBookingForm(bf => ({ ...bf, clientId: newId }));
+                  setPets(prev => [...prev, newPet]);
+                  setNewBookingForm(bf => ({ ...bf, clientId: newId, petId }));
                   setNewClientForm(emptyClient);
                   setClientSearch("");
                   setShowClientDropdown(false);
