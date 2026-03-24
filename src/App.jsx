@@ -654,14 +654,21 @@ export default function BokuAI() {
       raw.forEach(row => {
         const firstName = col(row, ["nome","firstname","first_name","nome*"]);
         const lastName = col(row, ["cognome","lastname","last_name","surname","cognome*"]);
-        if (!firstName || !lastName) return;
         const phone = col(row, ["telefono","phone","tel","cellulare"]);
         const email = col(row, ["email","mail","e-mail"]);
-        const key = phone || email || `${firstName.toLowerCase()}_${lastName.toLowerCase()}`;
-        if (!clientMap.has(key)) {
-          clientMap.set(key, { firstName, lastName, phone, email, notes: col(row, ["note","notes","annotazioni"]), pets: [] });
-        }
         const petName = col(row, ["nomeanimale","animale","pet","petname","pet_name","nomepet"]);
+        // Riga valida se ha almeno telefono, email o nome animale
+        if (!firstName && !lastName && !phone && !email && !petName) return;
+        const key = phone || email || `${firstName.toLowerCase()}_${lastName.toLowerCase()}` || petName.toLowerCase();
+        if (!clientMap.has(key)) {
+          clientMap.set(key, {
+            firstName: firstName || "—",
+            lastName: lastName || "",
+            phone, email,
+            notes: col(row, ["note","notes","annotazioni"]),
+            pets: []
+          });
+        }
         if (petName) {
           clientMap.get(key).pets.push({
             name: petName,
