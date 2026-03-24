@@ -518,9 +518,14 @@ export default function BokuAI() {
   const [newPetForm, setNewPetForm] = useState(emptyPet);
   const [showAddPet, setShowAddPet] = useState(null); // clientId
 
-  // Bulk import
+  // Bulk import clienti
   const [importRows, setImportRows] = useState([]);
   const [importLoading, setImportLoading] = useState(false);
+
+  // Bulk import appuntamenti
+  const [importBookingRows, setImportBookingRows] = useState([]);
+  const [importBookingLoading, setImportBookingLoading] = useState(false);
+  const [importBookingStats, setImportBookingStats] = useState(null);
   
   // New booking form
   const [newBookingForm, setNewBookingForm] = useState({ clientId: "", petId: "", date: new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date()), time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
@@ -721,6 +726,162 @@ export default function BokuAI() {
     setImportRows([]);
     setImportLoading(false);
     setShowModal(null);
+  };
+
+  // IMPORT APPUNTAMENTI: parse file
+  const handleImportBookingsFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      const norm = (s) => String(s).toLowerCase().trim().replace(/[\s_]/g, "");
+      const col = (row, keys) => { for (const k of keys) { const v = row[Object.keys(row).find(rk => norm(rk) === norm(k)) || ""]; if (v !== undefined && String(v).trim()) return String(v).trim(); } return ""; };
+      const mapStatus = (s) => {
+        const sl = String(s).toLowerCase();
+        if (sl.includes("complet")) return "completato";
+        if (sl.includes("cancel")) return "cancellato";
+        if (sl.includes("corso") || sl.includes("progress")) return "completato";
+        if (sl.includes("attesa") || sl.includes("pending")) return "in-attesa";
+        return "confermato";
+      };
+      const parsed = raw.map(row => ({
+        date: col(row, ["data","date"]),
+        time: col(row, ["orario","time","ora"]) || "09:00",
+        duration: parseInt(col(row, ["duratamin","durata","duration","minuti"])) || 60,
+        ownerFirstName: col(row, ["nomeproprietario","nome","firstname"]),
+        ownerLastName: col(row, ["cognomeproprietario","cognome","lastname"]),
+        phone: col(row, ["telefono","phone","tel","cellulare"]),
+        petName: col(row, ["nomeanimale","animale","pet","nomepet"]),
+        animalType: (col(row, ["tipoanimale","tipo","animaltype"]) || "cane").toLowerCase(),
+        breed: col(row, ["razza","breed"]) || "Meticcio",
+        price: parseFloat(col(row, ["totale","prezzo","total","price"])) || 0,
+        status: mapStatus(col(row, ["stato","status","stato"])),
+        notes: col(row, ["note","notes","annotazioni"]),
+      })).filter(r => r.date);
+      setImportBookingRows(parsed);
+      setImportBookingStats(null);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // IMPORT APPUNTAMENTI: salva su Supabase
+  const bulkImportBookings = async () => {
+    if (!importBookingRows.length) return;
+    setImportBookingLoading(true);
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
+
+    // Lookup maps da stato corrente
+    const clientByPhone = {};
+    clients.forEach(c => { if (c.phone) clientByPhone[c.phone.replace(/\s/g,"")] = c; });
+    const petByKey = {};
+    pets.forEach(p => { petByKey[`${p.clientId}_${p.name.toLowerCase()}`] = p; });
+
+    const newClients = [], newPets = [], newBookings = [];
+    let matchedClients = 0, createdClients = 0, createdPets = 0;
+
+    for (let i = 0; i < importBookingRows.length; i++) {
+      const row = importBookingRows[i];
+      const phoneClean = row.phone.replace(/\s/g,"");
+
+      // Trova o crea cliente
+      let client = clientByPhone[phoneClean];
+      if (!client && phoneClean) {
+        const clientId = `c_imp_${Date.now()}_${i}`;
+        client = {
+          id: clientId,
+          firstName: row.ownerFirstName || "—", lastName: row.ownerLastName || "",
+          phone: row.phone, email: "",
+          notes: "", registeredDate: today,
+          totalSpent: 0, visitCount: 0, lastVisit: null, loyaltyPoints: 0,
+          preferredDay: "Lunedì", source: "import", rating: 5,
+        };
+        newClients.push(client);
+        clientByPhone[phoneClean] = client;
+        createdClients++;
+      } else if (client) {
+        matchedClients++;
+      }
+      if (!client) continue;
+
+      // Trova o crea pet
+      const petKey = `${client.id}_${row.petName.toLowerCase()}`;
+      let pet = petByKey[petKey];
+      if (!pet && row.petName) {
+        const petId = `p_imp_${client.id}_${row.petName.toLowerCase().replace(/\W/g,"_")}`;
+        if (!petByKey[petKey]) {
+          pet = { id: petId, clientId: client.id, name: row.petName, animalType: row.animalType, breed: row.breed, size: "media", mordace: false, notes: "" };
+          newPets.push(pet);
+          petByKey[petKey] = pet;
+          createdPets++;
+        }
+      }
+
+      newBookings.push({
+        id: `b_imp_${Date.now()}_${i}`,
+        clientId: client.id, clientName: `${client.firstName} ${client.lastName}`.trim() || row.phone,
+        petName: row.petName || "—", animalType: row.animalType, breed: row.breed,
+        petId: pet?.id || null,
+        serviceId: "", serviceName: "Toelettatura",
+        date: row.date, time: row.time, duration: row.duration,
+        price: row.price, cost: Math.round(row.price * 0.3),
+        status: row.status, notes: row.notes,
+        createdVia: "import", reminderSent: false, payment: "",
+      });
+    }
+
+    // Inserisci nuovi clienti e pet
+    if (newClients.length) {
+      await supabase.from("clients").insert(newClients.map(c => ({
+        id: c.id, first_name: c.firstName, last_name: c.lastName,
+        phone: c.phone, email: c.email, notes: c.notes,
+        registered_date: c.registeredDate, total_spent: 0, visit_count: 0,
+        last_visit: null, loyalty_points: 0, preferred_day: c.preferredDay,
+        source: c.source, rating: c.rating,
+      })));
+    }
+    if (newPets.length) {
+      await supabase.from("pets").insert(newPets.map(p => ({
+        id: p.id, client_id: p.clientId, name: p.name, animal_type: p.animalType,
+        breed: p.breed, size: p.size, mordace: p.mordace, notes: p.notes,
+      })));
+    }
+
+    // Inserisci booking in batch da 200
+    for (let i = 0; i < newBookings.length; i += 200) {
+      await supabase.from("bookings").insert(newBookings.slice(i, i + 200).map(b => ({
+        id: b.id, client_id: b.clientId, client_name: b.clientName,
+        pet_name: b.petName, animal_type: b.animalType, breed: b.breed,
+        pet_id: b.petId, service_id: b.serviceId || null, service_name: b.serviceName,
+        date: b.date, time: b.time, duration: b.duration,
+        price: b.price, cost: b.cost, status: b.status,
+        notes: b.notes, created_via: b.createdVia, reminder_sent: false, payment: b.payment,
+      })));
+    }
+
+    // Aggiorna stats clienti (total_spent, visit_count, last_visit)
+    const allBookings = [...bookings, ...newBookings];
+    const clientIds = new Set(newBookings.map(b => b.clientId));
+    await Promise.all([...clientIds].map(clientId => {
+      const cb = allBookings.filter(b => b.clientId === clientId && b.status === "completato");
+      const totalSpent = cb.reduce((s, b) => s + b.price, 0);
+      const visitCount = cb.length;
+      const lastVisit = cb.sort((a, b) => b.date.localeCompare(a.date))[0]?.date || null;
+      return supabase.from("clients").update({ total_spent: totalSpent, visit_count: visitCount, last_visit: lastVisit }).eq("id", clientId);
+    }));
+
+    // Aggiorna state
+    setClients(prev => {
+      const map = Object.fromEntries(newClients.map(c => [c.id, c]));
+      return [...prev.map(c => map[c.id] ? { ...c } : c), ...newClients];
+    });
+    setPets(prev => [...prev, ...newPets]);
+    setBookings(prev => [...prev, ...newBookings].sort((a, b) => a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date)));
+    setImportBookingStats({ total: newBookings.length, matchedClients, createdClients, createdPets });
+    setImportBookingRows([]);
+    setImportBookingLoading(false);
   };
 
   // CRUD: Delete client
@@ -1302,6 +1463,7 @@ export default function BokuAI() {
                   <button className="btn btn-sm" onClick={() => setWeekStart(d => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7))}><Icon name="right" size={14} /></button>
                   <button className="btn btn-sm" onClick={() => { const d = new Date(); const day = d.getDay(); setWeekStart(new Date(d.getFullYear(), d.getMonth(), d.getDate() - (day === 0 ? 6 : day - 1))); }}>Oggi</button>
                 </>)}
+                <button className="btn" onClick={() => { setImportBookingRows([]); setImportBookingStats(null); setShowModal("importBookings"); }}>⬆ Importa Storico</button>
                 <button className="btn btn-primary" onClick={() => setShowModal("new")}><Icon name="plus" size={16} /> Prenota</button>
               </div>
             </div>
@@ -2523,6 +2685,83 @@ export default function BokuAI() {
                   <button className="btn" onClick={() => setShowModal(null)}>Annulla</button>
                   <button className="btn btn-primary" disabled={importLoading} onClick={bulkImportClients}>
                     {importLoading ? "Importazione..." : `⬆ Importa ${importRows.length} clienti`}
+                  </button>
+                </div>
+              </>)}
+            </div>
+          </div>
+        )}
+
+        {/* IMPORT STORICO APPUNTAMENTI */}
+        {showModal === "importBookings" && (
+          <div className="modal-overlay" onClick={() => setShowModal(null)}>
+            <div className="modal" style={{ maxWidth: 700 }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <h3>Importa Storico Appuntamenti</h3>
+                <button onClick={() => setShowModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text)" }}><Icon name="x" size={20} /></button>
+              </div>
+              {importBookingStats ? (<>
+                <div style={{ textAlign: "center", padding: "24px 0" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Importazione completata!</div>
+                  <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 2 }}>
+                    <div>📅 <strong>{importBookingStats.total}</strong> appuntamenti importati</div>
+                    <div>👤 <strong>{importBookingStats.newClients}</strong> nuovi clienti creati</div>
+                    <div>🐾 <strong>{importBookingStats.newPets}</strong> nuovi animali creati</div>
+                  </div>
+                  <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => { setShowModal(null); setImportBookingRows([]); setImportBookingStats(null); }}>Chiudi</button>
+                </div>
+              </>) : importBookingRows.length === 0 ? (<>
+                <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.6 }}>
+                  Carica un file <strong>.xlsx</strong>, <strong>.xls</strong> o <strong>.csv</strong>. Colonne riconosciute:<br />
+                  <span style={{ fontFamily: "monospace", fontSize: 12 }}>Data, Orario, DurataMin, NomeProprietario, CognomeProprietario, Telefono, NomeAnimale, TipoAnimale, Razza, Prezzo, Sconto, Totale, Stato, Note</span>
+                </div>
+                <div style={{ border: "2px dashed var(--border)", borderRadius: 10, padding: 32, textAlign: "center" }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>📂</div>
+                  <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>Trascina un file qui o clicca per selezionarlo</div>
+                  <input type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }} id="import-booking-file-input"
+                    onChange={e => handleImportBookingsFile(e.target.files[0])} />
+                  <label htmlFor="import-booking-file-input" className="btn btn-primary" style={{ cursor: "pointer" }}>Seleziona file</label>
+                </div>
+              </>) : (<>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 600 }}>
+                    ✓ {importBookingRows.length} appuntamenti · {[...new Set(importBookingRows.map(r => r.phone || r.clientName))].length} clienti
+                  </span>
+                  <button className="btn btn-sm" onClick={() => setImportBookingRows([])}>Cambia file</button>
+                </div>
+                <div style={{ overflowX: "auto", maxHeight: 280, overflowY: "auto", marginBottom: 16 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr style={{ background: "var(--bg3)" }}>
+                        {["Data", "Ora", "Cliente", "Animale", "Totale", "Stato"].map(h => (
+                          <th key={h} style={{ padding: "6px 10px", textAlign: "left", fontWeight: 600, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importBookingRows.slice(0, 12).map((r, i) => (
+                        <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
+                          <td style={{ padding: "6px 10px" }}>{r.date}</td>
+                          <td style={{ padding: "6px 10px" }}>{r.time}</td>
+                          <td style={{ padding: "6px 10px" }}>{r.clientName}</td>
+                          <td style={{ padding: "6px 10px" }}>{r.petName || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
+                          <td style={{ padding: "6px 10px" }}>{r.price != null ? `€${Number(r.price).toFixed(2)}` : "—"}</td>
+                          <td style={{ padding: "6px 10px" }}>
+                            <span style={{ fontSize: 11, padding: "2px 6px", borderRadius: 4, background: r.status === "completato" ? "var(--success-bg,#dcfce7)" : r.status === "cancellato" ? "#fee2e2" : "var(--bg3)", color: r.status === "completato" ? "var(--success)" : r.status === "cancellato" ? "#ef4444" : "var(--text-muted)" }}>
+                              {r.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {importBookingRows.length > 12 && <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "8px 10px" }}>… e altri {importBookingRows.length - 12} appuntamenti</div>}
+                </div>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                  <button className="btn" onClick={() => setShowModal(null)}>Annulla</button>
+                  <button className="btn btn-primary" disabled={importBookingLoading} onClick={bulkImportBookings}>
+                    {importBookingLoading ? "Importazione in corso..." : `⬆ Importa ${importBookingRows.length} appuntamenti`}
                   </button>
                 </div>
               </>)}
