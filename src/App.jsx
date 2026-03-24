@@ -531,6 +531,12 @@ export default function BokuAI() {
   const [clientSearch, setClientSearch] = useState("");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
 
+  const clientPetsMap = useMemo(() => {
+    const map = {};
+    pets.forEach(p => { if (!map[p.clientId]) map[p.clientId] = []; map[p.clientId].push(p); });
+    return map;
+  }, [pets]);
+
   const clientSearchResults = useMemo(() => {
     if (!clientSearch.trim()) return clients.slice(0, 8);
     const q = clientSearch.toLowerCase();
@@ -1037,12 +1043,6 @@ export default function BokuAI() {
   const today = new Date();
   const isToday = (day, month) => day === today.getDate() && month === today.getMonth() && calYear === today.getFullYear();
   const dayBookings = useMemo(() => selectedDate ? bookings.filter(b => b.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time)) : [], [bookings, selectedDate]);
-  const clientPetsMap = useMemo(() => {
-    const map = {};
-    pets.forEach(p => { if (!map[p.clientId]) map[p.clientId] = []; map[p.clientId].push(p); });
-    return map;
-  }, [pets]);
-
   const filteredClients = useMemo(() => {
     const list = clientFilter ? clients.filter(c => {
       const q = clientFilter.toLowerCase();
