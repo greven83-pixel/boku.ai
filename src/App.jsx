@@ -530,6 +530,9 @@ export default function BokuAI() {
   // Client table sort
   const [clientSort, setClientSort] = useState("visitCount");
   const [clientSortDir, setClientSortDir] = useState("desc");
+
+  // Analytics clienti: accordion fasce abbandono
+  const [riskOpen, setRiskOpen] = useState(null); // "30" | "60" | "90"
   
   // New booking form
   const [newBookingForm, setNewBookingForm] = useState({ clientId: "", petId: "", date: new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date()), time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
@@ -2188,48 +2191,55 @@ export default function BokuAI() {
                 const at30 = clientsWithDays.filter(c => c.days >= 30 && c.days < 60).sort((a, b) => b.days - a.days);
                 const at60 = clientsWithDays.filter(c => c.days >= 60 && c.days < 90).sort((a, b) => b.days - a.days);
                 const at90 = clientsWithDays.filter(c => c.days >= 90).sort((a, b) => b.days - a.days);
-                const RiskTable = ({ list, color, label }) => (
-                  <div style={{ marginBottom: 24 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                      <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: color }} />
-                      <span style={{ fontWeight: 700, fontSize: 13 }}>{label}</span>
-                      <span style={{ fontSize: 12, color: "var(--text-muted)", background: "var(--bg3)", padding: "2px 8px", borderRadius: 10 }}>{list.length} clienti</span>
-                    </div>
-                    {list.length === 0 ? (
-                      <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "10px 0" }}>Nessun cliente in questa fascia</div>
-                    ) : (
-                      <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-                          <thead><tr style={{ background: "var(--bg3)" }}>
-                            {["Cliente","Animale","Ultima visita","Giorni fa","Visite tot.","Spesa tot."].map(h => (
-                              <th key={h} style={{ padding: "6px 12px", textAlign: "left", fontWeight: 600, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{h}</th>
-                            ))}
-                          </tr></thead>
-                          <tbody>{list.map(c => (
-                            <tr key={c.id} style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }} onClick={() => { setSelectedClient(c); setView("clients"); }}>
-                              <td style={{ padding: "8px 12px", fontWeight: 500 }}>{c.firstName} {c.lastName}</td>
-                              <td style={{ padding: "8px 12px" }}>{(clientPetsMap[c.id] || []).map(p => `${ANIMAL_COLORS[p.animalType]?.emoji || "🐾"} ${p.name}`).join(", ") || "—"}</td>
-                              <td style={{ padding: "8px 12px" }}>{c.lastVisit || "—"}</td>
-                              <td style={{ padding: "8px 12px" }}><span style={{ fontWeight: 700, color }}>{c.days}gg</span></td>
-                              <td style={{ padding: "8px 12px" }}>{c.visitCount}</td>
-                              <td style={{ padding: "8px 12px", color: "var(--accent)", fontWeight: 600 }}>€{c.totalSpent}</td>
-                            </tr>
-                          ))}</tbody>
-                        </table>
+                const RiskTable = ({ list, color, label, key30 }) => {
+                  const isOpen = riskOpen === key30;
+                  return (
+                    <div style={{ marginBottom: 8, border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
+                      <div onClick={() => setRiskOpen(isOpen ? null : key30)}
+                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", cursor: "pointer", background: isOpen ? "var(--bg3)" : "transparent", userSelect: "none" }}>
+                        <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                        <span style={{ fontWeight: 700, fontSize: 13, flex: 1 }}>{label}</span>
+                        <span style={{ fontSize: 12, color: "var(--text-muted)", background: "var(--bg2)", padding: "2px 10px", borderRadius: 10 }}>{list.length} clienti</span>
+                        <span style={{ fontSize: 12, color: "var(--text-muted)", marginLeft: 4 }}>{isOpen ? "▲" : "▼"}</span>
                       </div>
-                    )}
-                  </div>
-                );
+                      {isOpen && (
+                        list.length === 0 ? (
+                          <div style={{ fontSize: 13, color: "var(--text-muted)", padding: "12px 16px" }}>Nessun cliente in questa fascia</div>
+                        ) : (
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                              <thead><tr style={{ background: "var(--bg3)" }}>
+                                {["Cliente","Animale","Ultima visita","Giorni fa","Visite tot.","Spesa tot."].map(h => (
+                                  <th key={h} style={{ padding: "6px 12px", textAlign: "left", fontWeight: 600, color: "var(--text-muted)", whiteSpace: "nowrap" }}>{h}</th>
+                                ))}
+                              </tr></thead>
+                              <tbody>{list.map(c => (
+                                <tr key={c.id} style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }} onClick={() => { setSelectedClient(c); setView("clients"); }}>
+                                  <td style={{ padding: "8px 12px", fontWeight: 500 }}>{c.firstName} {c.lastName}</td>
+                                  <td style={{ padding: "8px 12px" }}>{(clientPetsMap[c.id] || []).map(p => `${ANIMAL_COLORS[p.animalType]?.emoji || "🐾"} ${p.name}`).join(", ") || "—"}</td>
+                                  <td style={{ padding: "8px 12px" }}>{c.lastVisit || "—"}</td>
+                                  <td style={{ padding: "8px 12px" }}><span style={{ fontWeight: 700, color }}>{c.days}gg</span></td>
+                                  <td style={{ padding: "8px 12px" }}>{c.visitCount}</td>
+                                  <td style={{ padding: "8px 12px", color: "var(--accent)", fontWeight: 600 }}>€{c.totalSpent}</td>
+                                </tr>
+                              ))}</tbody>
+                            </table>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  );
+                };
                 return (<div>
                   <div className="stats-grid" style={{ marginBottom: 24 }}>
                     {[[at30.length, "Assenti 30+ giorni", "var(--orange)"], [at60.length, "Assenti 60+ giorni", "var(--danger)"], [at90.length, "Assenti 90+ giorni", "#7f1d1d"]].map(([v, l, c]) => (
                       <div className="stat-card" key={l} style={{ borderTop: `2px solid ${c}` }}><div className="stat-label">{l}</div><div className="stat-value" style={{ color: c }}>{v}</div></div>
                     ))}
                   </div>
-                  <div className="card">
-                    <RiskTable list={at30} color="var(--orange)" label="🟡 Assenti da 30–59 giorni" />
-                    <RiskTable list={at60} color="var(--danger)" label="🔴 Assenti da 60–89 giorni" />
-                    <RiskTable list={at90} color="#ef4444" label="⚫ Assenti da 90+ giorni" />
+                  <div className="card" style={{ padding: 0 }}>
+                    <RiskTable list={at30} color="var(--orange)" label="🟡 Assenti da 30–59 giorni" key30="30" />
+                    <RiskTable list={at60} color="var(--danger)" label="🔴 Assenti da 60–89 giorni" key30="60" />
+                    <RiskTable list={at90} color="#ef4444" label="⚫ Assenti da 90+ giorni" key30="90" />
                   </div>
                 </div>);
               })()}
