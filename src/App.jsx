@@ -381,9 +381,9 @@ select option { background: var(--bg3); color: var(--text); }
 .week-header-cell .wh-num { font-size: 18px; font-weight: 700; margin-top: 2px; }
 .week-header-cell.wh-today .wh-num { color: var(--accent); }
 .week-time-col { background: var(--bg3); border-right: 1px solid var(--border); }
-.week-time-label { height: 48px; display: flex; align-items: flex-start; justify-content: flex-end; padding: 2px 8px 0 0; font-size: 10px; font-weight: 500; color: var(--text-muted); }
-.week-day-col { position: relative; border-left: 1px solid var(--border); min-height: 960px; user-select: none; }
-.week-slot { height: 48px; border-bottom: 1px solid var(--border-light); cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg transform='rotate(-30 16 16)'%3E%3Cpath d='M16 27c-3.5 0-6.5-2.3-6.5-5.2S12.5 16 16 16s6.5 2.5 6.5 5.8S19.5 27 16 27z' fill='%236EE7B7'/%3E%3Ccircle cx='8.5' cy='12.5' r='3' fill='%23A78BFA'/%3E%3Ccircle cx='23.5' cy='12.5' r='3' fill='%23A78BFA'/%3E%3Ccircle cx='12' cy='8' r='2.7' fill='%23A78BFA'/%3E%3Ccircle cx='20' cy='8' r='2.7' fill='%23A78BFA'/%3E%3C/g%3E%3C/svg%3E") 4 4, pointer; transition: background 120ms; }
+.week-time-label { height: 36px; display: flex; align-items: flex-start; justify-content: flex-end; padding: 2px 8px 0 0; font-size: 10px; font-weight: 500; color: var(--text-muted); }
+.week-day-col { position: relative; border-left: 1px solid var(--border); min-height: 720px; user-select: none; }
+.week-slot { height: 36px; border-bottom: 1px solid var(--border-light); cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg transform='rotate(-30 16 16)'%3E%3Cpath d='M16 27c-3.5 0-6.5-2.3-6.5-5.2S12.5 16 16 16s6.5 2.5 6.5 5.8S19.5 27 16 27z' fill='%236EE7B7'/%3E%3Ccircle cx='8.5' cy='12.5' r='3' fill='%23A78BFA'/%3E%3Ccircle cx='23.5' cy='12.5' r='3' fill='%23A78BFA'/%3E%3Ccircle cx='12' cy='8' r='2.7' fill='%23A78BFA'/%3E%3Ccircle cx='20' cy='8' r='2.7' fill='%23A78BFA'/%3E%3C/g%3E%3C/svg%3E") 4 4, pointer; transition: background 120ms; }
 .week-slot:hover { background: var(--accent-dim); }
 .week-slot.drag-active { background: rgba(110,231,183,0.2); border-color: rgba(110,231,183,0.3); }
 .week-slot.drag-preview { background: rgba(110,231,183,0.12); position: relative; }
@@ -1772,7 +1772,7 @@ export default function ShifuKuAI() {
 
               {/* WEEKLY VIEW */}
               {calView === "week" && (() => {
-                const SLOT_H = 48;
+                const SLOT_H = 36;
                 const START_HOUR = 8;
                 const END_HOUR = 19;
                 const SLOTS = (END_HOUR - START_HOUR) * 2; // 22 half-hour slots
