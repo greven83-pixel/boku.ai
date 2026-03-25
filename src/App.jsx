@@ -1921,7 +1921,7 @@ export default function ShifuKuAI() {
 
               {/* DAY VIEW */}
               {calView === "day" && (() => {
-                const SLOT_H = 36;
+                const SLOT_H = 56;
                 const START_HOUR = 8;
                 const HOURS = 13; // 8:00 → 20:00
                 const dayStr = `${dayViewDate.getFullYear()}-${String(dayViewDate.getMonth() + 1).padStart(2, "0")}-${String(dayViewDate.getDate()).padStart(2, "0")}`;
