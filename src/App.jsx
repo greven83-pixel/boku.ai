@@ -151,6 +151,7 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
     sparkle: <svg width={size} height={size} viewBox="0 0 24 24" fill={color}><path d="M12 0L14.59 8.41L23 12L14.59 15.59L12 24L9.41 15.59L1 12L9.41 8.41Z"/></svg>,
     send: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
     brain: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M12 2a5 5 0 015 5c0 1.5-.5 2.5-1.5 3.5L12 14l-3.5-3.5C7.5 9.5 7 8.5 7 7a5 5 0 015-5z"/><path d="M12 14v8M8 18h8"/></svg>,
+    settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
     dog: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 2.028M10 5.172c1.056.886 2 2.386 2 4.328V12h1a4 4 0 010 8H7a4 4 0 01-4-4v-1l1.538-1.769A2 2 0 006 11.5h0"/><path d="M14 6l1-1 1 1M14 9h4l1-4"/><circle cx="8.5" cy="16.5" r=".5" fill={color}/></svg>,
     menu: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
   };
@@ -169,7 +170,7 @@ const ANIMAL_COLORS = {
 
 // ==================== STYLES ====================
 const CSS = `
-:root {
+:root, [data-theme="midnight"] {
   --bg: #0B1120;
   --bg2: #111827;
   --bg3: #1A2332;
@@ -205,6 +206,81 @@ const CSS = `
   --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
   --font: 'Outfit', sans-serif;
   --transition: 180ms ease;
+}
+[data-theme="obsidian"] {
+  --bg: #0D0D14;
+  --bg2: #13131F;
+  --bg3: #1C1C2E;
+  --bg-card: #111119;
+  --bg-hover: #1E1E30;
+  --text: #E2E0FF;
+  --text-dim: #9B97C8;
+  --text-muted: #6B6890;
+  --border: rgba(167,139,250,0.08);
+  --border-light: rgba(167,139,250,0.04);
+  --accent: #A78BFA;
+  --accent-dim: rgba(167,139,250,0.12);
+  --accent-hover: #9270F5;
+  --purple: #F472B6;
+  --purple-dim: rgba(244,114,182,0.12);
+  --blue: #818CF8;
+  --blue-dim: rgba(129,140,248,0.12);
+  --success: #34D399;
+  --success-dim: rgba(52,211,153,0.12);
+  --warning: #FBBF24;
+  --warning-dim: rgba(251,191,36,0.12);
+  --danger: #F87171;
+  --danger-dim: rgba(248,113,113,0.12);
+}
+[data-theme="sakura"] {
+  --bg: #120B0F;
+  --bg2: #1C1118;
+  --bg3: #261720;
+  --bg-card: #170D13;
+  --bg-hover: #2A1A24;
+  --text: #FFE4F0;
+  --text-dim: #C8909F;
+  --text-muted: #8A606F;
+  --border: rgba(244,114,182,0.08);
+  --border-light: rgba(244,114,182,0.04);
+  --accent: #F472B6;
+  --accent-dim: rgba(244,114,182,0.12);
+  --accent-hover: #EC4899;
+  --purple: #C084FC;
+  --purple-dim: rgba(192,132,252,0.12);
+  --blue: #7DD3FC;
+  --blue-dim: rgba(125,211,252,0.12);
+  --success: #34D399;
+  --success-dim: rgba(52,211,153,0.12);
+  --warning: #FBBF24;
+  --warning-dim: rgba(251,191,36,0.12);
+  --danger: #F87171;
+  --danger-dim: rgba(248,113,113,0.12);
+}
+[data-theme="forest"] {
+  --bg: #091210;
+  --bg2: #0F1A17;
+  --bg3: #16231E;
+  --bg-card: #0C1714;
+  --bg-hover: #1A2B25;
+  --text: #D4FAE6;
+  --text-dim: #7DB89A;
+  --text-muted: #4E7A65;
+  --border: rgba(52,211,153,0.08);
+  --border-light: rgba(52,211,153,0.04);
+  --accent: #34D399;
+  --accent-dim: rgba(52,211,153,0.12);
+  --accent-hover: #10B981;
+  --purple: #FBBF24;
+  --purple-dim: rgba(251,191,36,0.12);
+  --blue: #67E8F9;
+  --blue-dim: rgba(103,232,249,0.12);
+  --success: #34D399;
+  --success-dim: rgba(52,211,153,0.12);
+  --warning: #FBBF24;
+  --warning-dim: rgba(251,191,36,0.12);
+  --danger: #F87171;
+  --danger-dim: rgba(248,113,113,0.12);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -463,6 +539,12 @@ export default function ShifuKuAI() {
     loadData();
   }, []);
   
+  const [theme, setTheme] = useState(() => localStorage.getItem("shifuku-theme") || "midnight");
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("shifuku-theme", theme);
+  }, [theme]);
+
   const [view, setView] = useState("dashboard");
   const [selectedDate, setSelectedDate] = useState(null);
   const [calMonth, setCalMonth] = useState(2);
@@ -1411,6 +1493,7 @@ export default function ShifuKuAI() {
     { id: "ai", icon: "sparkle", label: "AI Insights" },
     { id: "forecast", icon: "brain", label: "Forecast" },
     { id: "whatsapp", icon: "whatsapp", label: "WhatsApp" },
+    { id: "settings", icon: "settings", label: "Impostazioni" },
   ];
 
   if (loading) return (
@@ -2790,6 +2873,54 @@ export default function ShifuKuAI() {
                       ))}
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </>)}
+
+          {/* SETTINGS */}
+          {view === "settings" && (<>
+            <div className="header">
+              <div className="header-left"><h2>Impostazioni</h2><p>Personalizza l'app</p></div>
+            </div>
+            <div className="content">
+              <div className="card" style={{ maxWidth: 700 }}>
+                <div className="card-header"><h3>Tema</h3></div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 16, marginTop: 8 }}>
+                  {[
+                    { id: "midnight", name: "Midnight", bg: "#0B1120", bg2: "#111827", accent: "#6EE7B7", desc: "Blu notte, menta" },
+                    { id: "obsidian", name: "Obsidian", bg: "#0D0D14", bg2: "#13131F", accent: "#A78BFA", desc: "Nero, viola" },
+                    { id: "sakura", name: "Sakura", bg: "#120B0F", bg2: "#1C1118", accent: "#F472B6", desc: "Scuro, rosa" },
+                    { id: "forest", name: "Forest", bg: "#091210", bg2: "#0F1A17", accent: "#34D399", desc: "Verde smeraldo" },
+                  ].map(t => (
+                    <div key={t.id} onClick={() => setTheme(t.id)}
+                      style={{ borderRadius: 12, overflow: "hidden", cursor: "pointer", border: `2px solid ${theme === t.id ? t.accent : "var(--border)"}`, transition: "border-color 200ms", background: t.bg }}>
+                      {/* Preview */}
+                      <div style={{ padding: 12, background: t.bg }}>
+                        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                          <div style={{ width: 32, borderRadius: 4, background: t.bg2, height: 52 }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ height: 10, borderRadius: 3, background: t.accent, marginBottom: 5, width: "70%" }} />
+                            <div style={{ height: 8, borderRadius: 3, background: t.bg2, marginBottom: 4, width: "90%" }} />
+                            <div style={{ height: 8, borderRadius: 3, background: t.bg2, width: "60%" }} />
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          {[0.9, 0.6, 0.75, 0.45].map((h, i) => (
+                            <div key={i} style={{ flex: 1, height: 24 * h, borderRadius: "3px 3px 0 0", background: i < 2 ? t.accent : `${t.accent}55`, alignSelf: "flex-end" }} />
+                          ))}
+                        </div>
+                      </div>
+                      {/* Label */}
+                      <div style={{ padding: "8px 12px", background: t.bg2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{t.name}</div>
+                          <div style={{ fontSize: 11, color: "#64748B", marginTop: 1 }}>{t.desc}</div>
+                        </div>
+                        {theme === t.id && <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.accent, boxShadow: `0 0 8px ${t.accent}` }} />}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
