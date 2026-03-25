@@ -1653,7 +1653,45 @@ export default function ShifuKuAI() {
           {/* CALENDAR */}
           {view === "calendar" && (<>
             <div className="header" style={{ flexWrap: "wrap", gap: 12 }}>
-              <div className="header-left"><h2>Calendario</h2><p>Gestione appuntamenti</p></div>
+              {/* left: title + inline metrics */}
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                <div className="header-left"><h2>Calendario</h2><p>Gestione appuntamenti</p></div>
+                {calView !== "list" && (() => {
+                  const monthPrefix = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`;
+                  const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
+                  const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
+                  const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")}`;
+                  const dayStr = `${dayViewDate.getFullYear()}-${String(dayViewDate.getMonth() + 1).padStart(2, "0")}-${String(dayViewDate.getDate()).padStart(2, "0")}`;
+                  const notCancelled = b => b.status !== "cancellato" && b.status !== "no-show";
+                  const confirmed = b => b.status === "confermato" || b.status === "completato" || b.status === "in-attesa";
+                  let viewBs;
+                  if (calView === "month") viewBs = bookings.filter(b => b.date.startsWith(monthPrefix));
+                  else if (calView === "week") viewBs = bookings.filter(b => b.date >= weekStartStr && b.date <= weekEndStr);
+                  else viewBs = bookings.filter(b => b.date === dayStr);
+                  const total = viewBs.filter(notCancelled).length;
+                  const rev = viewBs.filter(confirmed).reduce((s, b) => s + b.price, 0);
+                  const confirmed_ = viewBs.filter(b => b.status === "confermato" || b.status === "in-attesa").length;
+                  const completed = viewBs.filter(b => b.status === "completato").length;
+                  const cancelled = viewBs.filter(b => b.status === "cancellato" || b.status === "no-show").length;
+                  const pills = [
+                    ["Appt.", total, "var(--accent)"],
+                    ["Confermati", confirmed_, "var(--blue)"],
+                    ["Completati", completed, "var(--success)"],
+                    ["Cancellati", cancelled, "var(--danger)"],
+                    ["Fatturato", `€${rev.toLocaleString("it-IT")}`, "var(--purple)"],
+                  ];
+                  return (
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      {pills.map(([label, value, color]) => (
+                        <div key={label} style={{ display: "flex", flexDirection: "column", alignItems: "center", background: `${color}18`, border: `1px solid ${color}33`, borderRadius: 8, padding: "4px 10px", minWidth: 56 }}>
+                          <span style={{ fontSize: 18, fontWeight: 800, color, lineHeight: 1 }}>{value}</span>
+                          <span style={{ fontSize: 10, color, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", marginTop: 2, opacity: 0.8 }}>{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
               {/* center: period navigator */}
               <div style={{ display: "flex", gap: 8, alignItems: "center", flex: "1 1 auto", justifyContent: "center" }}>
                 {calView === "month" && (<>
@@ -1692,40 +1730,6 @@ export default function ShifuKuAI() {
               </div>
             </div>
             <div className="content">
-              {/* CALENDAR METRICS */}
-              {calView !== "list" && calView !== "day" && (() => {
-                const monthPrefix = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`;
-                const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
-                const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
-                const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")}`;
-                const notCancelled = b => b.status !== "cancellato" && b.status !== "no-show";
-                const confirmed = b => b.status === "confermato" || b.status === "completato" || b.status === "in-attesa";
-                let viewBs;
-                if (calView === "month") viewBs = bookings.filter(b => b.date.startsWith(monthPrefix));
-                else if (calView === "week") viewBs = bookings.filter(b => b.date >= weekStartStr && b.date <= weekEndStr);
-                else viewBs = selectedDate ? bookings.filter(b => b.date === selectedDate) : bookings.filter(b => b.date.startsWith(monthPrefix));
-                const total = viewBs.filter(notCancelled).length;
-                const rev = viewBs.filter(confirmed).reduce((s, b) => s + b.price, 0);
-                const confirmed_ = viewBs.filter(b => b.status === "confermato" || b.status === "in-attesa").length;
-                const completed = viewBs.filter(b => b.status === "completato").length;
-                const cancelled = viewBs.filter(b => b.status === "cancellato" || b.status === "no-show").length;
-                return (
-                  <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-                    {[
-                      ["Appuntamenti", total, "var(--accent)", "var(--accent-dim)"],
-                      ["Confermati", confirmed_, "var(--blue)", "var(--blue-dim)"],
-                      ["Completati", completed, "var(--success)", "var(--success-dim)"],
-                      ["Cancellati", cancelled, "var(--danger)", "var(--danger-dim)"],
-                      ["Fatturato previsto", `€${rev.toLocaleString("it-IT")}`, "var(--purple)", "var(--purple-dim)"],
-                    ].map(([label, value, color, bg]) => (
-                      <div key={label} style={{ background: bg, border: `1px solid ${color}22`, borderRadius: 10, padding: "10px 16px", minWidth: 110 }}>
-                        <div style={{ fontSize: 11, color, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color, marginTop: 2 }}>{value}</div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
 
               {/* MONTHLY VIEW */}
               {calView === "month" && (
