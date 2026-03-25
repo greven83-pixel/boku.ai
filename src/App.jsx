@@ -1992,66 +1992,30 @@ export default function ShifuKuAI() {
                                   <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Variabilità</div>
                                   <div style={{ fontSize: 26, fontWeight: 800, color: profile.stddev <= 10 ? "var(--success)" : "var(--orange)", marginTop: 4 }}>±{profile.stddev}gg</div>
                                 </div>
-                                <div style={{ textAlign: "center", padding: 12, background: "var(--bg-card)", borderRadius: 8 }}>
-                                  <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>Prossima Visita</div>
-                                  <div style={{ fontSize: 14, fontWeight: 700, color: profile.churned ? "var(--danger)" : "var(--purple)", marginTop: 8 }}>
-                                    {profile.churned ? "Probabilmente perso" : profile.nextExpected ? profile.nextExpected.toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : "—"}
-                                  </div>
-                                </div>
+                                {(() => {
+                                  const nextReal = bookings
+                                    .filter(b => b.clientId === selectedClient.id && b.date > todayStr && (b.status === "confermato" || b.status === "in-attesa"))
+                                    .sort((a, b) => a.date.localeCompare(b.date))[0];
+                                  const isAI = !nextReal;
+                                  const label = isAI ? "Stima AI" : "Prossima Prenotazione";
+                                  const dateStr = nextReal
+                                    ? new Date(nextReal.date + "T00:00:00").toLocaleDateString("it-IT", { day: "numeric", month: "short" }) + (nextReal.time ? ` · ${nextReal.time}` : "")
+                                    : profile.churned ? "Probabilmente perso" : profile.nextExpected ? profile.nextExpected.toLocaleDateString("it-IT", { day: "numeric", month: "short" }) : "—";
+                                  return (
+                                    <div style={{ textAlign: "center", padding: 12, background: isAI ? "var(--purple-dim)" : "var(--success-dim)", borderRadius: 8, border: `1px solid ${isAI ? "rgba(167,139,250,0.2)" : "rgba(52,211,153,0.2)"}` }}>
+                                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4, fontSize: 10, color: isAI ? "var(--purple)" : "var(--success)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>
+                                        {isAI && <Icon name="sparkle" size={10} color="var(--purple)" />}
+                                        {label}
+                                      </div>
+                                      <div style={{ fontSize: 14, fontWeight: 700, color: profile.churned ? "var(--danger)" : isAI ? "var(--purple)" : "var(--success)", marginTop: 8 }}>{dateStr}</div>
+                                      {isAI && !profile.churned && <div style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 4 }}>stimata dal modello</div>}
+                                    </div>
+                                  );
+                                })()}
                               </div>
 
-                              {/* Visual timeline of intervals */}
-                              {profile.intervals && profile.intervals.length > 0 && (
-                                <div>
-                                  <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, marginBottom: 8 }}>INTERVALLI TRA VISITE (giorni)</div>
-                                  <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 50 }}>
-                                    {profile.intervals.map((interval, idx) => {
-                                      const maxInt = Math.max(...profile.intervals);
-                                      const h = maxInt ? (interval / maxInt) * 40 : 20;
-                                      const isAbove = interval > profile.cycle * 1.3;
-                                      const isBelow = interval < profile.cycle * 0.7;
-                                      return (
-                                        <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, gap: 3 }}>
-                                          <div style={{ fontSize: 10, fontWeight: 700, color: isAbove ? "var(--danger)" : isBelow ? "var(--blue)" : "var(--accent)" }}>{interval}</div>
-                                          <div style={{ 
-                                            width: "100%", height: h, borderRadius: "3px 3px 0 0",
-                                            background: isAbove ? "var(--danger)" : isBelow ? "var(--blue)" : "var(--accent)",
-                                            opacity: 0.7, transition: "height 400ms ease"
-                                          }} />
-                                        </div>
-                                      );
-                                    })}
-                                    {/* Projected next interval */}
-                                    {!profile.churned && (
-                                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, gap: 3 }}>
-                                        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--purple)" }}>~{profile.cycle}</div>
-                                        <div style={{ 
-                                          width: "100%", height: Math.max(...profile.intervals) ? (profile.cycle / Math.max(...profile.intervals)) * 40 : 20, 
-                                          borderRadius: "3px 3px 0 0",
-                                          background: "var(--purple)", opacity: 0.4, 
-                                          border: "1px dashed var(--purple)", borderBottom: "none",
-                                          transition: "height 400ms ease"
-                                        }} />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
-                                    {profile.intervals.map((_, idx) => (
-                                      <div key={idx} style={{ flex: 1, textAlign: "center", fontSize: 9, color: "var(--text-muted)" }}>v{idx + 1}→v{idx + 2}</div>
-                                    ))}
-                                    {!profile.churned && <div style={{ flex: 1, textAlign: "center", fontSize: 9, color: "var(--purple)" }}>prossima</div>}
-                                  </div>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 11, color: "var(--text-muted)" }}>
-                                    <span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--accent)" }} /> nella norma
-                                    <span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--danger)" }} /> ritardo
-                                    <span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--blue)" }} /> anticipato
-                                    <span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--purple)", opacity: 0.5 }} /> previsto
-                                  </div>
-                                </div>
-                              )}
-                              
                               {profile.intervals && profile.intervals.length === 0 && (
-                                <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic" }}>
+                                <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", marginTop: 8 }}>
                                   Una sola visita registrata — ciclo stimato a 45gg (media settore). Dopo la seconda visita il modello si calibrerà automaticamente.
                                 </div>
                               )}
