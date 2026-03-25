@@ -481,7 +481,8 @@ export default function ShifuKuAI() {
   const [forecastRange, setForecastRange] = useState("6m");
   const [overviewPastColor, setOverviewPastColor] = useState("#6EE7B7");
   const [overviewFutureColor, setOverviewFutureColor] = useState("#A78BFA");
-  const [overviewLineColor, setOverviewLineColor] = useState("#F59E0B");
+  const [overviewLinePastColor, setOverviewLinePastColor] = useState("#F59E0B");
+  const [overviewLineFutureColor, setOverviewLineFutureColor] = useState("#FB923C");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedClientIds, setSelectedClientIds] = useState(new Set());
   const [selectedBookingIds, setSelectedBookingIds] = useState(new Set());
@@ -1458,19 +1459,22 @@ export default function ShifuKuAI() {
               <div className="two-col" style={{ marginBottom: 24 }}>
                 <div className="card">
                   <div className="card-header"><h3>Overview</h3>
-                    <div style={{ display: "flex", gap: 12, alignItems: "center", fontSize: 11, color: "var(--text-muted)" }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", position: "relative" }} title="Colore barre passato">
-                        <span style={{ width: 10, height: 10, borderRadius: 2, background: overviewPastColor, border: "1px solid rgba(255,255,255,0.15)" }} /> Passato
-                        <input type="color" value={overviewPastColor} onChange={e => setOverviewPastColor(e.target.value)} style={{ position: "absolute", width: "100%", height: "100%", opacity: 0, cursor: "pointer", top: 0, left: 0 }} />
-                      </label>
-                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", position: "relative" }} title="Colore barre futuro">
-                        <span style={{ width: 10, height: 10, borderRadius: 2, background: overviewFutureColor, border: "1px solid rgba(255,255,255,0.15)", borderStyle: "dashed" }} /> Futuro
-                        <input type="color" value={overviewFutureColor} onChange={e => setOverviewFutureColor(e.target.value)} style={{ position: "absolute", width: "100%", height: "100%", opacity: 0, cursor: "pointer", top: 0, left: 0 }} />
-                      </label>
-                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", position: "relative" }} title="Colore linea prenotazioni">
-                        <span style={{ width: 16, height: 2, background: overviewLineColor, borderRadius: 1, display: "inline-block" }} /> Prenotazioni
-                        <input type="color" value={overviewLineColor} onChange={e => setOverviewLineColor(e.target.value)} style={{ position: "absolute", width: "100%", height: "100%", opacity: 0, cursor: "pointer", top: 0, left: 0 }} />
-                      </label>
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 11, color: "var(--text-muted)", flexWrap: "wrap" }}>
+                      {[
+                        ["Fatturato: Passato", overviewPastColor, setOverviewPastColor, false],
+                        ["Fatturato: Futuro",  overviewFutureColor, setOverviewFutureColor, true],
+                        ["Prenotazioni: Passato", overviewLinePastColor, setOverviewLinePastColor, false, true],
+                        ["Prenotazioni: Futuro",  overviewLineFutureColor, setOverviewLineFutureColor, true, true],
+                      ].map(([lbl, val, setter, dashed, isLine]) => (
+                        <label key={lbl} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", position: "relative" }}>
+                          {isLine
+                            ? <span style={{ width: 14, height: 2, background: val, borderRadius: 1, display: "inline-block", ...(dashed ? { background: "none", borderTop: `2px dashed ${val}` } : {}) }} />
+                            : <span style={{ width: 10, height: 10, borderRadius: 2, background: val, border: `1px ${dashed ? "dashed" : "solid"} rgba(255,255,255,0.2)` }} />
+                          }
+                          {lbl}
+                          <input type="color" value={val} onChange={e => setter(e.target.value)} style={{ position: "absolute", width: "100%", height: "100%", opacity: 0, cursor: "pointer", top: 0, left: 0 }} />
+                        </label>
+                      ))}
                     </div>
                   </div>
                   {(() => {
@@ -1507,13 +1511,20 @@ export default function ShifuKuAI() {
                           })}
                         </div>
                         <svg viewBox="0 0 900 210" preserveAspectRatio="none" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
-                          <polyline points={pts.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke={overviewLineColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-                          {pts.map((p, i) => (
-                            <g key={i}>
-                              <circle cx={p.x} cy={p.y} r="4" fill={overviewLineColor} stroke="var(--bg2)" strokeWidth="2" />
-                              <text x={p.x} y={p.y - 7} textAnchor="middle" fontSize="10" fill={overviewLineColor} fontWeight="700" fontFamily="inherit" style={{ pointerEvents: "none" }}>{dashboardChartData[i].count}</text>
-                            </g>
-                          ))}
+                          {/* Segmento passato: punti 0..5 (incluso punto di giunzione) */}
+                          <polyline points={pts.slice(0, 7).map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke={overviewLinePastColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                          {/* Segmento futuro: da punto 5 (giunzione) ai punti forecast */}
+                          <polyline points={pts.slice(5).map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke={overviewLineFutureColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="5 3" />
+                          {pts.map((p, i) => {
+                            const isFuturePt = dashboardChartData[i].type === "forecast";
+                            const dotColor = isFuturePt ? overviewLineFutureColor : overviewLinePastColor;
+                            return (
+                              <g key={i}>
+                                <circle cx={p.x} cy={p.y} r="4" fill={dotColor} stroke="var(--bg2)" strokeWidth="2" />
+                                <text x={p.x} y={p.y - 7} textAnchor="middle" fontSize="10" fill={dotColor} fontWeight="700" fontFamily="inherit" style={{ pointerEvents: "none" }}>{dashboardChartData[i].count}</text>
+                              </g>
+                            );
+                          })}
                         </svg>
                       </div>
                     );
