@@ -1409,7 +1409,7 @@ export default function BokuAI() {
               </div>
               <div className="two-col" style={{ marginBottom: 24 }}>
                 <div className="card">
-                  <div className="card-header"><h3>Fatturato Mensile</h3>
+                  <div className="card-header"><h3>Overview</h3>
                     <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--text-muted)" }}>
                       <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--accent)" }} /> Storico</span>
                       <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--purple)", border: "1px dashed var(--purple)" }} /> Forecast</span>
@@ -1418,9 +1418,10 @@ export default function BokuAI() {
                   <div className="bar-chart">
                     {dashboardChartData.map((m, i) => (
                       <div className="bar-col" key={i}>
+                        <div style={{ fontSize: 10, color: m.type === "forecast" ? "var(--purple)" : "var(--text-muted)", marginBottom: 1 }}>{m.count} apt</div>
                         <div className="bar-value" style={{ color: m.type === "forecast" ? "var(--purple)" : i === 5 ? "var(--accent)" : "var(--text-dim)" }}>€{(m.revenue / 1000).toFixed(1)}k</div>
-                        <div className="bar" style={{ 
-                          height: `${(m.revenue / maxMonthlyRev) * 140}px`, 
+                        <div className="bar" style={{
+                          height: `${(m.revenue / maxMonthlyRev) * 140}px`,
                           background: m.type === "forecast" ? "linear-gradient(180deg, var(--purple) 0%, rgba(167,139,250,0.2) 100%)" : i === 5 ? "var(--accent)" : "rgba(110,231,183,0.2)",
                           border: m.type === "forecast" ? "1px dashed rgba(167,139,250,0.4)" : "none",
                           borderBottom: "none",
