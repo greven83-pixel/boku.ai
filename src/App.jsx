@@ -566,7 +566,7 @@ export default function ShifuKuAI() {
   const [clientSortDir, setClientSortDir] = useState("desc");
 
   // Analytics clienti: accordion fasce abbandono
-  const [riskOpen, setRiskOpen] = useState(null); // "30" | "60" | "90"
+  const [riskOpen, setRiskOpen] = useState(null); // "30" | "60" | "90" | "180"
   
   // New booking form
   const [newBookingForm, setNewBookingForm] = useState({ clientId: "", petId: "", date: new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date()), time: "10:00", serviceId: "", notes: "", price: "", duration: "", payment: "" });
@@ -2382,7 +2382,8 @@ export default function ShifuKuAI() {
                   .filter(c => c.days !== null && c.visitCount > 0);
                 const at30 = clientsWithDays.filter(c => c.days >= 30 && c.days < 60).sort((a, b) => b.days - a.days);
                 const at60 = clientsWithDays.filter(c => c.days >= 60 && c.days < 90).sort((a, b) => b.days - a.days);
-                const at90 = clientsWithDays.filter(c => c.days >= 90).sort((a, b) => b.days - a.days);
+                const at90 = clientsWithDays.filter(c => c.days >= 90 && c.days < 180).sort((a, b) => b.days - a.days);
+                const at180 = clientsWithDays.filter(c => c.days >= 180).sort((a, b) => b.days - a.days);
                 const RiskTable = ({ list, color, label, key30 }) => {
                   const isOpen = riskOpen === key30;
                   return (
@@ -2424,14 +2425,15 @@ export default function ShifuKuAI() {
                 };
                 return (<div>
                   <div className="stats-grid" style={{ marginBottom: 24 }}>
-                    {[[at30.length, "Assenti 30+ giorni", "var(--orange)"], [at60.length, "Assenti 60+ giorni", "var(--danger)"], [at90.length, "Assenti 90+ giorni", "#7f1d1d"]].map(([v, l, c]) => (
+                    {[[at30.length, "Assenti 30+ giorni", "var(--orange)"], [at60.length, "Assenti 60+ giorni", "var(--danger)"], [at90.length, "Assenti 90+ giorni", "#ef4444"], [at180.length, "Assenti 180+ giorni", "#7f1d1d"]].map(([v, l, c]) => (
                       <div className="stat-card" key={l} style={{ borderTop: `2px solid ${c}` }}><div className="stat-label">{l}</div><div className="stat-value" style={{ color: c }}>{v}</div></div>
                     ))}
                   </div>
                   <div className="card" style={{ padding: 0 }}>
                     <RiskTable list={at30} color="var(--orange)" label="🟡 Assenti da 30–59 giorni" key30="30" />
                     <RiskTable list={at60} color="var(--danger)" label="🔴 Assenti da 60–89 giorni" key30="60" />
-                    <RiskTable list={at90} color="#ef4444" label="⚫ Assenti da 90+ giorni" key30="90" />
+                    <RiskTable list={at90} color="#ef4444" label="🟠 Assenti da 90–179 giorni" key30="90" />
+                    <RiskTable list={at180} color="#7f1d1d" label="⚫ Assenti da 180+ giorni" key30="180" />
                   </div>
                 </div>);
               })()}
