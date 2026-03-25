@@ -257,9 +257,9 @@ body, html, #root { height: 100%; width: 100%; font-family: var(--font); font-si
 .stat-change.down { color: var(--danger); background: var(--danger-dim); }
 
 /* Calendar */
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: auto repeat(6, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; height: 100%; }
 .cal-header-cell { background: var(--bg3); padding: 10px; text-align: center; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
-.cal-cell { background: var(--bg-card); min-height: 100px; padding: 6px; cursor: pointer; transition: background var(--transition); position: relative; }
+.cal-cell { background: var(--bg-card); min-height: 0; padding: 6px; cursor: pointer; transition: background var(--transition); position: relative; }
 .cal-cell:hover { background: var(--bg3); }
 .cal-cell.other-month { background: var(--bg2); }
 .cal-cell.other-month .cal-day { color: var(--text-muted); }
@@ -1733,9 +1733,9 @@ export default function ShifuKuAI() {
 
               {/* MONTHLY VIEW */}
               {calView === "month" && (
-                <div style={{ display: "flex", gap: 24 }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="cal-grid">
+                <div style={{ display: "flex", gap: 24, height: "calc(100vh - 290px)" }}>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                    <div className="cal-grid" style={{ flex: 1 }}>
                       {["Lun","Mar","Mer","Gio","Ven","Sab","Dom"].map(d => <div className="cal-header-cell" key={d}>{d}</div>)}
                       {calDays.map((d, i) => {
                         const db = getBookingsForDay(d.day, d.month);
@@ -1802,16 +1802,7 @@ export default function ShifuKuAI() {
                 const statusColors = { completato: { bg: "var(--success-dim)", border: "var(--success)", text: "var(--success)" }, confermato: { bg: "var(--blue-dim)", border: "var(--blue)", text: "var(--blue)" }, "in-attesa": { bg: "var(--warning-dim)", border: "var(--warning)", text: "var(--warning)" }, cancellato: { bg: "var(--danger-dim)", border: "var(--danger)", text: "var(--danger)" }, "no-show": { bg: "var(--purple-dim)", border: "var(--purple)", text: "var(--purple)" } };
                 
                 return (
-                  <div style={{ overflowY: "auto", maxHeight: "calc(100vh - 140px)" }}>
-                    {/* Animal type legend */}
-                    <div style={{ display: "flex", gap: 12, padding: "8px 16px", borderBottom: "1px solid var(--border)", flexWrap: "wrap" }}>
-                      {Object.entries(ANIMAL_COLORS).map(([type, c]) => (
-                        <span key={type} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: c.text }}>
-                          <span style={{ width: 8, height: 8, borderRadius: 2, background: c.border, display: "inline-block" }} />
-                          {c.emoji} {type.charAt(0).toUpperCase() + type.slice(1)}
-                        </span>
-                      ))}
-                    </div>
+                  <div style={{ overflowY: "auto", height: "calc(100vh - 290px)" }}>
                     <div className="week-grid">
                       {/* Header row */}
                       <div className="week-header-cell" style={{ borderLeft: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1942,21 +1933,6 @@ export default function ShifuKuAI() {
                 const toP = min => `${(min / TOTAL_MIN) * 100}%`;
                 return (
                   <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 290px)" }}>
-                    {/* Day metrics */}
-                    <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", flexShrink: 0 }}>
-                      {[
-                        ["Appuntamenti", dayBs.filter(b => b.status !== "cancellato" && b.status !== "no-show").length, "var(--accent)", "var(--accent-dim)"],
-                        ["Confermati", dayBs.filter(b => b.status === "confermato" || b.status === "in-attesa").length, "var(--blue)", "var(--blue-dim)"],
-                        ["Completati", dayBs.filter(b => b.status === "completato").length, "var(--success)", "var(--success-dim)"],
-                        ["Cancellati", dayBs.filter(b => b.status === "cancellato" || b.status === "no-show").length, "var(--danger)", "var(--danger-dim)"],
-                        ["Fatturato", `€${dayBs.filter(b => b.status !== "cancellato" && b.status !== "no-show").reduce((s, b) => s + b.price, 0).toLocaleString("it-IT")}`, "var(--purple)", "var(--purple-dim)"],
-                      ].map(([label, value, color, bg]) => (
-                        <div key={label} style={{ background: bg, border: `1px solid ${color}22`, borderRadius: 10, padding: "10px 16px", minWidth: 110 }}>
-                          <div style={{ fontSize: 11, color, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
-                          <div style={{ fontSize: 22, fontWeight: 800, color, marginTop: 2 }}>{value}</div>
-                        </div>
-                      ))}
-                    </div>
                     {/* Grid: fills remaining height */}
                     <div style={{ flex: 1, display: "grid", gridTemplate: "auto 1fr / 56px 1fr", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden", minHeight: 0 }}>
                       {/* Header row */}
