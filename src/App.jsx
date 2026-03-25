@@ -152,6 +152,7 @@ const Icon = ({ name, size = 18, color = "currentColor" }) => {
     send: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
     brain: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M12 2a5 5 0 015 5c0 1.5-.5 2.5-1.5 3.5L12 14l-3.5-3.5C7.5 9.5 7 8.5 7 7a5 5 0 015-5z"/><path d="M12 14v8M8 18h8"/></svg>,
     dog: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M10 5.172C10 3.782 8.423 2.679 6.5 3c-2.823.47-4.113 6.006-4 7 .08.703 1.725 1.722 3.656 2.028M10 5.172c1.056.886 2 2.386 2 4.328V12h1a4 4 0 010 8H7a4 4 0 01-4-4v-1l1.538-1.769A2 2 0 006 11.5h0"/><path d="M14 6l1-1 1 1M14 9h4l1-4"/><circle cx="8.5" cy="16.5" r=".5" fill={color}/></svg>,
+    menu: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
   };
   return icons[name] || null;
 };
@@ -207,7 +208,7 @@ const CSS = `
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body, html, #root { height: 100%; width: 100%; font-family: var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+body, html, #root { height: 100%; width: 100%; font-family: var(--font); font-size: 15px; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
 .app { display: flex; height: 100vh; overflow: hidden; }
 
 /* Sidebar */
@@ -218,7 +219,7 @@ body, html, #root { height: 100%; width: 100%; font-family: var(--font); backgro
 .sidebar-logo .ai-badge { display: inline-flex; align-items: center; background: #10B981; color: #fff; font-size: 14px; font-weight: 900; padding: 4px 12px; border-radius: 6px; margin-left: 8px; letter-spacing: 0.12em; vertical-align: middle; -webkit-text-fill-color: #fff; -webkit-background-clip: unset; }
 .sidebar-logo p { font-size: 11px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; }
 .sidebar-nav { padding: 12px 10px; flex: 1; }
-.nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 8px; color: var(--text-dim); cursor: pointer; font-size: 14px; font-weight: 400; transition: all var(--transition); margin-bottom: 2px; border: 1px solid transparent; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 8px; color: var(--text-dim); cursor: pointer; font-size: 15px; font-weight: 400; transition: all var(--transition); margin-bottom: 2px; border: 1px solid transparent; }
 .nav-item:hover { background: var(--bg3); color: var(--text); }
 .nav-item.active { background: var(--bg3); color: var(--text); font-weight: 600; border-color: var(--border); }
 .nav-item.active .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
@@ -232,7 +233,7 @@ body, html, #root { height: 100%; width: 100%; font-family: var(--font); backgro
 .content { flex: 1; overflow-y: auto; padding: 24px 32px; }
 
 /* Buttons */
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--bg3); color: var(--text); transition: all var(--transition); font-family: var(--font); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--bg3); color: var(--text); transition: all var(--transition); font-family: var(--font); }
 .btn:hover { border-color: var(--text-muted); background: var(--bg-hover); }
 .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
 .btn-primary:hover { background: var(--accent-hover); }
@@ -243,7 +244,7 @@ body, html, #root { height: 100%; width: 100%; font-family: var(--font); backgro
 /* Cards */
 .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.card-header h3 { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.card-header h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
 
 /* Stats */
@@ -271,7 +272,7 @@ body, html, #root { height: 100%; width: 100%; font-family: var(--font); backgro
 /* Table */
 table { width: 100%; border-collapse: collapse; }
 thead th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--bg3); }
-tbody td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid var(--border); }
+tbody td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid var(--border); }
 tbody tr:hover { background: var(--bg3); }
 .status-badge { display: inline-flex; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 .status-badge.completato { background: var(--success-dim); color: var(--success); }
@@ -281,14 +282,14 @@ tbody tr:hover { background: var(--bg3); }
 .status-badge.no-show { background: var(--purple-dim); color: var(--purple); }
 
 /* Input */
-input, select, textarea { font-family: var(--font); font-size: 13px; padding: 9px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg3); color: var(--text); width: 100%; transition: border var(--transition); outline: none; }
+input, select, textarea { font-family: var(--font); font-size: 14px; padding: 9px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg3); color: var(--text); width: 100%; transition: border var(--transition); outline: none; }
 input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 input::placeholder, textarea::placeholder { color: var(--text-muted); }
 label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; display: block; }
 
 /* Tabs */
 .tabs { display: flex; gap: 2px; background: var(--bg2); border-radius: 8px; padding: 3px; margin-bottom: 20px; width: fit-content; border: 1px solid var(--border); }
-.tab { padding: 7px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all var(--transition); color: var(--text-muted); border: none; background: transparent; font-family: var(--font); }
+.tab { padding: 7px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all var(--transition); color: var(--text-muted); border: none; background: transparent; font-family: var(--font); }
 .tab.active { background: var(--bg3); color: var(--text); box-shadow: var(--shadow); }
 
 /* Charts */
@@ -398,10 +399,37 @@ select option { background: var(--bg3); color: var(--text); }
 .week-booking-block .wb-service { font-size: 10px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .week-now-line { position: absolute; left: 0; right: 0; height: 2px; background: var(--danger); z-index: 3; pointer-events: none; }
 .week-now-line::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+
+/* Mobile hamburger button */
+.hamburger-btn { display: none; position: fixed; top: 14px; left: 14px; z-index: 200; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; cursor: pointer; color: var(--text); line-height: 1; }
+.mobile-overlay { display: none; }
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .hamburger-btn { display: flex; align-items: center; justify-content: center; }
+  .mobile-overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
+  .app { flex-direction: column; height: auto; min-height: 100vh; overflow: auto; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; transform: translateX(-100%); transition: transform 0.25s ease; min-width: 260px; width: 260px; }
+  .sidebar.open { transform: translateX(0); }
+  .main { width: 100%; flex: none; overflow: visible; }
+  .header { padding: 14px 16px 14px 56px; }
+  .header-left h2 { font-size: 18px; }
+  .content { padding: 16px; overflow-y: visible; flex: none; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .two-col { grid-template-columns: 1fr; }
+  .card { padding: 14px; }
+  .bar-chart { height: 180px; }
+  table { font-size: 12px; }
+  thead th, tbody td { padding: 8px 8px; }
+  .modal-overlay .card { margin: 16px; width: auto; max-width: 100%; }
+  .tabs { overflow-x: auto; width: 100%; }
+  .cal-grid { font-size: 11px; }
+  .cal-cell { min-height: 60px; padding: 4px; }
+}
 `;
 
 // ==================== MAIN APP ====================
-export default function BokuAI() {
+export default function ShifuKuAI() {
   const [clients, setClients] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [pets, setPets] = useState([]);
@@ -451,6 +479,9 @@ export default function BokuAI() {
   ]);
   const [waInput, setWaInput] = useState("");
   const [forecastRange, setForecastRange] = useState("6m");
+  const [overviewBarColor, setOverviewBarColor] = useState("#6EE7B7");
+  const [overviewLineColor, setOverviewLineColor] = useState("#F59E0B");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedClientIds, setSelectedClientIds] = useState(new Set());
   const [selectedBookingIds, setSelectedBookingIds] = useState(new Set());
   const [calView, setCalView] = useState("month"); // "month" | "week" | "list"
@@ -1363,21 +1394,25 @@ export default function BokuAI() {
     <>
       <style>{CSS}</style>
       <div className="app">
-        <aside className="sidebar">
+        {sidebarOpen && <div className="mobile-overlay" onClick={() => setSidebarOpen(false)} />}
+        <button className="hamburger-btn" onClick={() => setSidebarOpen(o => !o)}>
+          <Icon name="menu" size={20} />
+        </button>
+        <aside className={`sidebar${sidebarOpen ? " open" : ""}`}>
           <div className="sidebar-logo">
-            <h1>boku<span>.</span><span className="ai-badge">AI</span></h1>
+            <h1>shifuku<span>.</span><span className="ai-badge">AI</span></h1>
             <p>AI-Powered Pet Grooming</p>
           </div>
           <nav className="sidebar-nav">
             {navItems.map(n => (
-              <div key={n.id} className={`nav-item ${view === n.id ? "active" : ""}`} onClick={() => setView(n.id)}>
+              <div key={n.id} className={`nav-item ${view === n.id ? "active" : ""}`} onClick={() => { setView(n.id); setSidebarOpen(false); }}>
                 {view === n.id && <span className="nav-dot" />}
                 <Icon name={n.icon} size={18} />
                 <span>{n.label}</span>
               </div>
             ))}
           </nav>
-          <div className="sidebar-footer">boku.ai • POC v1.0 • Demo Data</div>
+          <div className="sidebar-footer">shifuku.ai • POC v1.0</div>
         </aside>
 
         <div className="main">
@@ -1410,28 +1445,54 @@ export default function BokuAI() {
               <div className="two-col" style={{ marginBottom: 24 }}>
                 <div className="card">
                   <div className="card-header"><h3>Overview</h3>
-                    <div style={{ display: "flex", gap: 12, fontSize: 11, color: "var(--text-muted)" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--accent)" }} /> Storico</span>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center", fontSize: 11, color: "var(--text-muted)" }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", position: "relative" }} title="Colore barre">
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: overviewBarColor, border: "1px solid rgba(255,255,255,0.15)" }} /> Barre
+                        <input type="color" value={overviewBarColor} onChange={e => setOverviewBarColor(e.target.value)} style={{ position: "absolute", width: "100%", height: "100%", opacity: 0, cursor: "pointer", top: 0, left: 0 }} />
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", position: "relative" }} title="Colore linea prenotazioni">
+                        <span style={{ width: 16, height: 2, background: overviewLineColor, borderRadius: 1, display: "inline-block" }} /> Prenotazioni
+                        <input type="color" value={overviewLineColor} onChange={e => setOverviewLineColor(e.target.value)} style={{ position: "absolute", width: "100%", height: "100%", opacity: 0, cursor: "pointer", top: 0, left: 0 }} />
+                      </label>
                       <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--purple)", border: "1px dashed var(--purple)" }} /> Forecast</span>
                     </div>
                   </div>
-                  <div className="bar-chart">
-                    {dashboardChartData.map((m, i) => (
-                      <div className="bar-col" key={i}>
-                        <div className="bar-value" style={{ color: m.type === "forecast" ? "var(--purple)" : i === 5 ? "var(--accent)" : "var(--text-dim)", textAlign: "center", lineHeight: "1.4" }}>
-                          <div>€{(m.revenue / 1000).toFixed(1)}k</div>
-                          <div style={{ fontSize: 9, fontWeight: 500, opacity: 0.8 }}>{m.count} apt</div>
+                  {(() => {
+                    const n = dashboardChartData.length;
+                    const maxCount = Math.max(...dashboardChartData.map(m => m.count), 1);
+                    const barBottom = 190; const barH = 140; const unitW = 900 / n;
+                    const hex2rgba = (hex, a) => { const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; };
+                    const pts = dashboardChartData.map((m, i) => ({ x: i * unitW + unitW / 2, y: barBottom - (m.count / maxCount) * barH }));
+                    return (
+                      <div style={{ position: "relative" }}>
+                        <div className="bar-chart">
+                          {dashboardChartData.map((m, i) => (
+                            <div className="bar-col" key={i}>
+                              <div className="bar-value" style={{ color: m.type === "forecast" ? "var(--purple)" : i === 5 ? overviewBarColor : "var(--text-dim)", textAlign: "center" }}>
+                                €{(m.revenue / 1000).toFixed(1)}k
+                              </div>
+                              <div className="bar" style={{
+                                height: `${(m.revenue / maxMonthlyRev) * 140}px`,
+                                background: m.type === "forecast" ? "linear-gradient(180deg, var(--purple) 0%, rgba(167,139,250,0.2) 100%)" : i === 5 ? overviewBarColor : hex2rgba(overviewBarColor, 0.25),
+                                border: m.type === "forecast" ? "1px dashed rgba(167,139,250,0.4)" : "none",
+                                borderBottom: "none",
+                              }} />
+                              <div className="bar-label" style={{ color: m.type === "forecast" ? "var(--purple)" : undefined }}>{m.label}</div>
+                            </div>
+                          ))}
                         </div>
-                        <div className="bar" style={{
-                          height: `${(m.revenue / maxMonthlyRev) * 140}px`,
-                          background: m.type === "forecast" ? "linear-gradient(180deg, var(--purple) 0%, rgba(167,139,250,0.2) 100%)" : i === 5 ? "var(--accent)" : "rgba(110,231,183,0.2)",
-                          border: m.type === "forecast" ? "1px dashed rgba(167,139,250,0.4)" : "none",
-                          borderBottom: "none",
-                        }} />
-                        <div className="bar-label" style={{ color: m.type === "forecast" ? "var(--purple)" : undefined }}>{m.label}</div>
+                        <svg viewBox="0 0 900 210" preserveAspectRatio="none" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+                          <polyline points={pts.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke={overviewLineColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                          {pts.map((p, i) => (
+                            <g key={i}>
+                              <circle cx={p.x} cy={p.y} r="4" fill={overviewLineColor} stroke="var(--bg2)" strokeWidth="2" />
+                              <text x={p.x} y={p.y - 7} textAnchor="middle" fontSize="10" fill={overviewLineColor} fontWeight="700" fontFamily="inherit" style={{ pointerEvents: "none" }}>{dashboardChartData[i].count}</text>
+                            </g>
+                          ))}
+                        </svg>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()}
                 </div>
 
                 {/* TODAY'S RECAP */}
@@ -1487,31 +1548,52 @@ export default function BokuAI() {
                 </div>
                 <div className="card">
                   <div className="card-header"><h3>Top 5 Clienti</h3></div>
-                  {topClients.slice(0, 5).map((c, i) => {
-                    const colors = ["var(--accent)","var(--purple)","var(--orange)","var(--blue)","var(--danger)"];
-                    const dimColors = ["var(--accent-dim)","var(--purple-dim)","var(--orange-dim)","var(--blue-dim)","var(--danger-dim)"];
-                    const color = colors[i];
-                    const avgSpend = c.visitCount > 0 ? Math.round(c.totalSpent / c.visitCount) : 0;
-                    const profile = clientForecast.clientProfiles.find(p => p.id === c.id);
-                    const cycle = profile?.cycle ?? null;
-                    return (
-                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < 4 ? "1px solid var(--border)" : "none" }}>
-                        <div style={{ width: 36, height: 36, borderRadius: "50%", background: dimColors[i], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color, flexShrink: 0 }}>{c.firstName[0]}{c.lastName[0]}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-muted)" }}>• {c.petName}</span></div>
-                          <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20, background: "var(--bg3)", color: "var(--text-dim)" }}>{c.visitCount} visite</span>
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20, background: "var(--accent-dim)", color: "var(--accent)" }}>€{avgSpend}/visita</span>
-                            {cycle && <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 7px", borderRadius: 20, background: "var(--purple-dim)", color: "var(--purple)" }}>ogni ~{cycle}gg</span>}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div style={{ fontWeight: 700, fontSize: 15, color }}>{`€${c.totalSpent}`}</div>
-                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>totale</div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                          <th style={{ textAlign: "left", padding: "6px 8px", fontWeight: 600, fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>Cliente</th>
+                          <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 600, fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>Prenotazioni</th>
+                          <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 600, fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>Media/apt</th>
+                          <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 600, fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>Ciclo medio</th>
+                          <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 600, fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>Ultima visita</th>
+                          <th style={{ textAlign: "right", padding: "6px 8px", fontWeight: 600, fontSize: 11, color: "var(--text-muted)", whiteSpace: "nowrap" }}>Totale</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {topClients.slice(0, 5).map((c, i) => {
+                          const colors = ["var(--accent)","var(--purple)","var(--orange)","var(--blue)","var(--danger)"];
+                          const dimColors = ["var(--accent-dim)","var(--purple-dim)","var(--orange-dim)","var(--blue-dim)","var(--danger-dim)"];
+                          const stats = clientBookingStats[c.id] || {};
+                          const visits = stats.visitCount || 0;
+                          const totalSpent = stats.totalSpent || 0;
+                          const avgSpend = visits > 0 ? Math.round(totalSpent / visits) : 0;
+                          const profile = clientForecast.clientProfiles.find(p => p.id === c.id);
+                          const cycle = profile?.cycle ?? null;
+                          const lastVisit = stats.lastVisit;
+                          const daysAgo = lastVisit ? Math.floor((new Date() - new Date(lastVisit)) / 86400000) : null;
+                          return (
+                            <tr key={c.id} style={{ borderBottom: i < 4 ? "1px solid var(--border)" : "none" }}>
+                              <td style={{ padding: "10px 8px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: dimColors[i], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: colors[i], flexShrink: 0 }}>{c.firstName[0]}{c.lastName[0]}</div>
+                                  <div>
+                                    <div style={{ fontWeight: 600, fontSize: 13 }}>{c.firstName} {c.lastName}</div>
+                                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.petName}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td style={{ textAlign: "right", padding: "10px 8px", fontWeight: 600 }}>{visits}</td>
+                              <td style={{ textAlign: "right", padding: "10px 8px", color: "var(--accent)", fontWeight: 600 }}>€{avgSpend}</td>
+                              <td style={{ textAlign: "right", padding: "10px 8px", color: "var(--purple)", fontWeight: 600 }}>{cycle ? `~${cycle}gg` : <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
+                              <td style={{ textAlign: "right", padding: "10px 8px", color: daysAgo !== null && daysAgo > 60 ? "var(--danger)" : "var(--text-dim)", fontWeight: 600 }}>{daysAgo !== null ? `${daysAgo}gg fa` : "—"}</td>
+                              <td style={{ textAlign: "right", padding: "10px 8px", fontWeight: 700, fontSize: 14, color: colors[i] }}>€{totalSpent.toLocaleString()}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
               <div className="card" style={{ marginBottom: 0 }}>
@@ -2253,7 +2335,7 @@ export default function BokuAI() {
           {view === "ai" && (<>
             <div className="header">
               <div className="header-left"><h2>AI Insights</h2><p>Suggerimenti intelligenti per massimizzare il profitto</p></div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-muted)" }}><Icon name="sparkle" size={14} color="var(--accent)" /> Powered by boku.ai engine</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-muted)" }}><Icon name="sparkle" size={14} color="var(--accent)" /> Powered by shifuku.ai engine</div>
             </div>
             <div className="content">
               <div className="stats-grid" style={{ marginBottom: 24 }}>
@@ -2470,7 +2552,7 @@ export default function BokuAI() {
                   })}
                 </div>
                 <div className="card">
-                  <div className="card-header"><h3>Come funziona il modello</h3><span className="badge" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>boku.ai engine</span></div>
+                  <div className="card-header"><h3>Come funziona il modello</h3><span className="badge" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>shifuku.ai engine</span></div>
                   <div style={{ fontSize: 13, color: "var(--text-dim)", lineHeight: 1.8 }}>
                     {[
                       ["1️⃣", "Calcola il ciclo medio di ritorno per ogni cliente dagli intervalli tra visite (min. 2 visite)"],
@@ -2490,7 +2572,7 @@ export default function BokuAI() {
 
               <div className="two-col">
                 <div className="insight-card"><h4><Icon name="sparkle" size={14} color="var(--accent)" /> Insight Stagionalità</h4><p>Maggio picco previsto ({forecastData[1].predicted} prenotazioni) per muta primaverile. Lancia campagna "Primavera Anti-Muta" a metà aprile via WhatsApp. Agosto calo fisiologico — promozioni aggressive o chiusura parziale.</p></div>
-                <div className="insight-card"><h4><Icon name="sparkle" size={14} color="var(--accent)" /> Actionable: WhatsApp Reminder</h4><p>Il modello identifica {clientForecast.activeClients.filter(c => c.confidence === "high").length} clienti ad alta confidenza. Per ognuno, boku.ai può inviare un reminder WhatsApp personalizzato X giorni prima della data prevista, massimizzando il tasso di riprenotazione e riempiendo il calendario in anticipo.</p></div>
+                <div className="insight-card"><h4><Icon name="sparkle" size={14} color="var(--accent)" /> Actionable: WhatsApp Reminder</h4><p>Il modello identifica {clientForecast.activeClients.filter(c => c.confidence === "high").length} clienti ad alta confidenza. Per ognuno, ShifuKu.AI può inviare un reminder WhatsApp personalizzato X giorni prima della data prevista, massimizzando il tasso di riprenotazione e riempiendo il calendario in anticipo.</p></div>
               </div>
             </div>
           </>)}
