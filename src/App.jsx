@@ -292,7 +292,7 @@ label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bott
 .tab.active { background: var(--bg3); color: var(--text); box-shadow: var(--shadow); }
 
 /* Charts */
-.bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 180px; padding-top: 10px; overflow: hidden; }
+.bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 210px; padding-top: 10px; overflow: hidden; }
 .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 6px; }
 .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 600ms ease; min-height: 2px; }
 .bar:hover { opacity: 0.8; }
@@ -1454,7 +1454,7 @@ export default function BokuAI() {
                         <div style={{ fontSize: 11, color: "var(--text-muted)" }}>Incasso giornata</div>
                       </div>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 220, overflowY: "auto" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto" }}>
                       {todayBookings.map(b => (
                         <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 6, background: "var(--bg3)", cursor: "pointer" }} onClick={() => { setView("calendar"); setCalView("month"); setSelectedDate(todayStr); }}>
                           <div style={{ fontWeight: 700, fontSize: 13, color: "var(--accent)", minWidth: 42 }}>{b.time}</div>
