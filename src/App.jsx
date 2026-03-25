@@ -375,15 +375,15 @@ select option { background: var(--bg3); color: var(--text); }
 .client-picker-empty { padding: 16px; text-align: center; font-size: 12px; color: var(--text-muted); }
 
 /* Weekly view */
-.week-grid { display: grid; grid-template-columns: 56px repeat(7, 1fr); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.week-grid { display: grid; grid-template-columns: 56px repeat(7, 1fr); grid-template-rows: auto 1fr; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; height: 100%; }
 .week-header-cell { background: var(--bg3); padding: 10px 6px; text-align: center; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); }
 .week-header-cell .wh-day { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .week-header-cell .wh-num { font-size: 18px; font-weight: 700; margin-top: 2px; }
 .week-header-cell.wh-today .wh-num { color: var(--accent); }
-.week-time-col { background: var(--bg3); border-right: 1px solid var(--border); }
-.week-time-label { height: 36px; display: flex; align-items: flex-start; justify-content: flex-end; padding: 2px 8px 0 0; font-size: 10px; font-weight: 500; color: var(--text-muted); }
-.week-day-col { position: relative; border-left: 1px solid var(--border); min-height: 720px; user-select: none; }
-.week-slot { height: 36px; border-bottom: 1px solid var(--border-light); cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg transform='rotate(-30 16 16)'%3E%3Cpath d='M16 27c-3.5 0-6.5-2.3-6.5-5.2S12.5 16 16 16s6.5 2.5 6.5 5.8S19.5 27 16 27z' fill='%236EE7B7'/%3E%3Ccircle cx='8.5' cy='12.5' r='3' fill='%23A78BFA'/%3E%3Ccircle cx='23.5' cy='12.5' r='3' fill='%23A78BFA'/%3E%3Ccircle cx='12' cy='8' r='2.7' fill='%23A78BFA'/%3E%3Ccircle cx='20' cy='8' r='2.7' fill='%23A78BFA'/%3E%3C/g%3E%3C/svg%3E") 4 4, pointer; transition: background 120ms; }
+.week-time-col { background: var(--bg3); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.week-time-label { flex: 1; min-height: 0; display: flex; align-items: flex-start; justify-content: flex-end; padding: 2px 8px 0 0; font-size: 10px; font-weight: 500; color: var(--text-muted); }
+.week-day-col { position: relative; border-left: 1px solid var(--border); display: flex; flex-direction: column; user-select: none; }
+.week-slot { flex: 1; min-height: 0; border-bottom: 1px solid var(--border-light); cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cg transform='rotate(-30 16 16)'%3E%3Cpath d='M16 27c-3.5 0-6.5-2.3-6.5-5.2S12.5 16 16 16s6.5 2.5 6.5 5.8S19.5 27 16 27z' fill='%236EE7B7'/%3E%3Ccircle cx='8.5' cy='12.5' r='3' fill='%23A78BFA'/%3E%3Ccircle cx='23.5' cy='12.5' r='3' fill='%23A78BFA'/%3E%3Ccircle cx='12' cy='8' r='2.7' fill='%23A78BFA'/%3E%3Ccircle cx='20' cy='8' r='2.7' fill='%23A78BFA'/%3E%3C/g%3E%3C/svg%3E") 4 4, pointer; transition: background 120ms; }
 .week-slot:hover { background: var(--accent-dim); }
 .week-slot.drag-active { background: rgba(110,231,183,0.2); border-color: rgba(110,231,183,0.3); }
 .week-slot.drag-preview { background: rgba(110,231,183,0.12); position: relative; }
@@ -1791,10 +1791,11 @@ export default function ShifuKuAI() {
 
               {/* WEEKLY VIEW */}
               {calView === "week" && (() => {
-                const SLOT_H = 36;
                 const START_HOUR = 8;
                 const END_HOUR = 19;
                 const SLOTS = (END_HOUR - START_HOUR) * 2; // 22 half-hour slots
+                const TOTAL_MIN_W = (END_HOUR - START_HOUR) * 60;
+                const toPW = min => `${(min / TOTAL_MIN_W) * 100}%`;
                 const weekDays = Array.from({ length: 7 }, (_, i) => {
                   const d = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
                   return { date: d, dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`, dayName: ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"][d.getDay()], dayNum: d.getDate(), isToday: d.toDateString() === new Date().toDateString() };
@@ -1802,8 +1803,8 @@ export default function ShifuKuAI() {
                 const statusColors = { completato: { bg: "var(--success-dim)", border: "var(--success)", text: "var(--success)" }, confermato: { bg: "var(--blue-dim)", border: "var(--blue)", text: "var(--blue)" }, "in-attesa": { bg: "var(--warning-dim)", border: "var(--warning)", text: "var(--warning)" }, cancellato: { bg: "var(--danger-dim)", border: "var(--danger)", text: "var(--danger)" }, "no-show": { bg: "var(--purple-dim)", border: "var(--purple)", text: "var(--purple)" } };
                 
                 return (
-                  <div style={{ overflowY: "auto", height: "calc(100vh - 290px)" }}>
-                    <div className="week-grid">
+                  <div style={{ height: "calc(100vh - 290px)", overflow: "hidden" }}>
+                    <div className="week-grid" style={{ height: "100%" }}>
                       {/* Header row */}
                       <div className="week-header-cell" style={{ borderLeft: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <Icon name="clock" size={14} color="var(--text-muted)" />
@@ -1854,7 +1855,7 @@ export default function ShifuKuAI() {
 
                             {/* Drag preview overlay */}
                             {isDragDay && dragSlots > 0 && (
-                              <div className="week-drag-overlay" style={{ top: dragMin * SLOT_H + 1, height: dragSlots * SLOT_H - 2 }}>
+                              <div className="week-drag-overlay" style={{ top: `calc(${toPW(dragMin * 30)} + 1px)`, height: `calc(${toPW(dragSlots * 30)} - 2px)` }}>
                                 {dragStartH}:{dragStartM} — {dragDurLabel}
                               </div>
                             )}
@@ -1885,22 +1886,20 @@ export default function ShifuKuAI() {
                               });
 
                               return withTotal.map(b => {
-                                const topPx = (b._start / 30) * SLOT_H;
-                                const heightPx = Math.max((b.duration / 30) * SLOT_H - 2, SLOT_H - 2);
                                 const ac = ANIMAL_COLORS[b.animalType] || ANIMAL_COLORS.altro;
                                 const cancelled = b.status === "cancellato" || b.status === "no-show";
                                 const colW = 100 / b.totalCols;
                                 const leftPct = b.col * colW;
                                 return (
                                   <div key={b.id} className="week-booking-block"
-                                    style={{ top: topPx, height: heightPx, background: ac.bg, borderLeftColor: ac.border, color: ac.text, left: `calc(${leftPct}% + 2px)`, width: `calc(${colW}% - 4px)`, opacity: cancelled ? 0.45 : 1 }}
+                                    style={{ top: `calc(${toPW(b._start)} + 1px)`, height: `calc(${toPW(b.duration)} - 2px)`, background: ac.bg, borderLeftColor: ac.border, color: ac.text, left: `calc(${leftPct}% + 2px)`, width: `calc(${colW}% - 4px)`, opacity: cancelled ? 0.45 : 1 }}
                                     title={`${b.time} - ${b.clientName}\n${b.petName} • ${b.serviceName}\n${b.duration}min • €${b.price}${b.payment ? "\nPagamento: " + b.payment : ""}`}
                                     onClick={(e) => { e.stopPropagation(); openEditBooking(b); }}
                                   >
                                     <div className="wb-time">{b.time}{b.payment && <span style={{ marginLeft: 4, opacity: 0.7 }}>{b.payment === "pos" ? "💳" : b.payment === "contanti" ? "💵" : "📝"}</span>}</div>
                                     <div className="wb-name">{(ANIMAL_COLORS[b.animalType]?.emoji || "🐾")} {b.petName}</div>
-                                    {heightPx > 50 && <div className="wb-service">{b.serviceName}</div>}
-                                    {heightPx > 70 && <div style={{ fontSize: 10, marginTop: 2 }}>{b.clientName} • €{b.price}</div>}
+                                    {b.duration > 45 && <div className="wb-service">{b.serviceName}</div>}
+                                    {b.duration > 60 && <div style={{ fontSize: 10, marginTop: 2 }}>{b.clientName} • €{b.price}</div>}
                                   </div>
                                 );
                               });
@@ -1911,7 +1910,7 @@ export default function ShifuKuAI() {
                               const nowH = 11, nowM = 30; // Simulated "now" for demo
                               const nowMin = (nowH - START_HOUR) * 60 + nowM;
                               if (nowMin < 0 || nowMin > (END_HOUR - START_HOUR) * 60) return null;
-                              return <div className="week-now-line" style={{ top: (nowMin / 30) * SLOT_H }} />;
+                              return <div className="week-now-line" style={{ top: toPW(nowMin) }} />;
                             })()}
                           </div>
                         );
