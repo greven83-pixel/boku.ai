@@ -2411,18 +2411,34 @@ export default function ShifuKuAI() {
                 const at60 = clientsWithDays.filter(c => c.days >= 60 && c.days < 90).sort((a, b) => b.days - a.days);
                 const at90 = clientsWithDays.filter(c => c.days >= 90 && c.days < 180).sort((a, b) => b.days - a.days);
                 const at180 = clientsWithDays.filter(c => c.days >= 180).sort((a, b) => b.days - a.days);
-                const exportRiskCSV = (list, label) => {
-                  const headers = ["Nome", "Cognome", "Telefono", "Animali", "Ultima visita", "Giorni fa", "Visite tot.", "Spesa tot. (€)"];
-                  const rows = list.map(c => [
-                    c.firstName, c.lastName, c.phone,
-                    (clientPetsMap[c.id] || []).map(p => `${p.name} (${p.animalType})`).join(" | "),
-                    c.lastVisit || "", c.days, c.visitCount, c.totalSpent
-                  ]);
-                  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-                  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+                const exportRiskHTML = (list, label) => {
+                  const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+                  const rows = list.map(c => {
+                    const animals = (clientPetsMap[c.id] || []).map(p => `${ANIMAL_COLORS[p.animalType]?.emoji || "🐾"} ${esc(p.name)} (${esc(p.animalType)})`).join(", ") || "—";
+                    const phone = c.phone ? `<a href="tel:${c.phone}" style="color:#6EE7B7;font-weight:700;text-decoration:none">${esc(c.phone)}</a>` : "—";
+                    return `<tr>
+                      <td>${esc(c.firstName)} ${esc(c.lastName)}</td>
+                      <td>${phone}</td>
+                      <td>${animals}</td>
+                      <td>${esc(c.lastVisit || "—")}</td>
+                      <td style="font-weight:700;color:#f87171">${c.days} gg</td>
+                      <td>${c.visitCount}</td>
+                      <td style="color:#6EE7B7;font-weight:600">€${c.totalSpent}</td>
+                    </tr>`;
+                  }).join("");
+                  const html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(label)}</title>
+<style>body{font-family:system-ui,sans-serif;background:#0B1120;color:#e2e8f0;padding:16px;margin:0}h1{font-size:18px;margin-bottom:16px;color:#6EE7B7}table{width:100%;border-collapse:collapse;font-size:14px}th{background:#1e293b;padding:10px 12px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;white-space:nowrap}td{padding:10px 12px;border-bottom:1px solid #1e293b}tr:hover td{background:#1e293b}@media(max-width:600px){table,thead,tbody,th,td,tr{display:block}thead{display:none}td{padding:6px 12px;border:none}td::before{content:attr(data-label)" ";font-size:11px;color:#94a3b8;display:block}tr{border:1px solid #1e293b;border-radius:8px;margin-bottom:10px;padding:4px 0}}</style>
+</head><body>
+<h1>${esc(label)} — ${list.length} clienti</h1>
+<table>
+<thead><tr><th>Cliente</th><th>Telefono</th><th>Animali</th><th>Ultima visita</th><th>Giorni fa</th><th>Visite</th><th>Spesa tot.</th></tr></thead>
+<tbody>${rows}</tbody>
+</table></body></html>`;
+                  const blob = new Blob([html], { type: "text/html;charset=utf-8;" });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
-                  a.href = url; a.download = `${label.replace(/[^a-z0-9]/gi, "_")}.csv`; a.click();
+                  a.href = url; a.download = `${label.replace(/[^a-z0-9]/gi, "_")}.html`; a.click();
                   URL.revokeObjectURL(url);
                 };
                 const RiskTable = ({ list, color, label, key30 }) => {
@@ -2434,7 +2450,7 @@ export default function ShifuKuAI() {
                         <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
                         <span style={{ fontWeight: 700, fontSize: 13, flex: 1 }}>{label}</span>
                         <span style={{ fontSize: 12, color: "var(--text-muted)", background: "var(--bg2)", padding: "2px 10px", borderRadius: 10 }}>{list.length} clienti</span>
-                        <button className="btn btn-sm" style={{ fontSize: 11, padding: "3px 10px" }} onClick={e => { e.stopPropagation(); exportRiskCSV(list, label); }}>⬇ CSV</button>
+                        <button className="btn btn-sm" style={{ fontSize: 11, padding: "3px 10px" }} onClick={e => { e.stopPropagation(); exportRiskHTML(list, label); }}>⬇ Esporta</button>
                         <span style={{ fontSize: 12, color: "var(--text-muted)", marginLeft: 4 }}>{isOpen ? "▲" : "▼"}</span>
                       </div>
                       {isOpen && (
