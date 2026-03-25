@@ -1652,23 +1652,18 @@ export default function ShifuKuAI() {
 
           {/* CALENDAR */}
           {view === "calendar" && (<>
-            <div className="header">
+            <div className="header" style={{ flexWrap: "wrap", gap: 12 }}>
               <div className="header-left"><h2>Calendario</h2><p>Gestione appuntamenti</p></div>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <div className="tabs" style={{ marginBottom: 0 }}>
-                  <button className={`tab ${calView === "month" ? "active" : ""}`} onClick={() => setCalView("month")}>Mensile</button>
-                  <button className={`tab ${calView === "week" ? "active" : ""}`} onClick={() => setCalView("week")}>Settimanale</button>
-                  <button className={`tab ${calView === "day" ? "active" : ""}`} onClick={() => setCalView("day")}>Giornaliero</button>
-                  <button className={`tab ${calView === "list" ? "active" : ""}`} onClick={() => setCalView("list")}>Lista</button>
-                </div>
+              {/* center: period navigator */}
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flex: "1 1 auto", justifyContent: "center" }}>
                 {calView === "month" && (<>
                   <button className="btn btn-sm" onClick={() => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); }}><Icon name="left" size={14} /></button>
-                  <span style={{ fontWeight: 600, fontSize: 15, minWidth: 140, textAlign: "center" }}>{["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"][calMonth]} {calYear}</span>
+                  <span style={{ fontWeight: 700, fontSize: 16, minWidth: 160, textAlign: "center" }}>{["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"][calMonth]} {calYear}</span>
                   <button className="btn btn-sm" onClick={() => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); }}><Icon name="right" size={14} /></button>
                 </>)}
                 {calView === "week" && (<>
                   <button className="btn btn-sm" onClick={() => setWeekStart(d => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 7))}><Icon name="left" size={14} /></button>
-                  <span style={{ fontWeight: 600, fontSize: 14, minWidth: 200, textAlign: "center" }}>
+                  <span style={{ fontWeight: 700, fontSize: 15, minWidth: 200, textAlign: "center" }}>
                     {weekStart.toLocaleDateString("it-IT", { day: "numeric", month: "short" })} — {new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}
                   </span>
                   <button className="btn btn-sm" onClick={() => setWeekStart(d => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7))}><Icon name="right" size={14} /></button>
@@ -1676,10 +1671,22 @@ export default function ShifuKuAI() {
                 </>)}
                 {calView === "day" && (<>
                   <button className="btn btn-sm" onClick={() => setDayViewDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; })}><Icon name="left" size={14} /></button>
-                  <span style={{ fontWeight: 600, fontSize: 14, minWidth: 200, textAlign: "center" }}>{dayViewDate.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
+                  <span style={{ fontWeight: 700, fontSize: 15, minWidth: 220, textAlign: "center" }}>{dayViewDate.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
                   <button className="btn btn-sm" onClick={() => setDayViewDate(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n; })}><Icon name="right" size={14} /></button>
                   <button className="btn btn-sm" onClick={() => setDayViewDate(new Date())}>Oggi</button>
                 </>)}
+                {calView === "list" && (
+                  <span style={{ fontWeight: 700, fontSize: 16, color: "var(--text-muted)" }}>Tutti gli appuntamenti</span>
+                )}
+              </div>
+              {/* right: view tabs + actions */}
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <div className="tabs" style={{ marginBottom: 0 }}>
+                  <button className={`tab ${calView === "month" ? "active" : ""}`} onClick={() => setCalView("month")}>Mensile</button>
+                  <button className={`tab ${calView === "week" ? "active" : ""}`} onClick={() => setCalView("week")}>Settimanale</button>
+                  <button className={`tab ${calView === "day" ? "active" : ""}`} onClick={() => setCalView("day")}>Giornaliero</button>
+                  <button className={`tab ${calView === "list" ? "active" : ""}`} onClick={() => setCalView("list")}>Lista</button>
+                </div>
                 <button className="btn" onClick={() => { setImportBookingRows([]); setImportBookingStats(null); setShowModal("importBookings"); }}>⬆ Importa Storico</button>
                 <button className="btn btn-primary" onClick={() => setShowModal("new")}><Icon name="plus" size={16} /> Prenota</button>
               </div>
