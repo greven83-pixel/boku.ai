@@ -2487,9 +2487,12 @@ export default function ShifuKuAI() {
                   if (!dateStr) return null;
                   return Math.floor((new Date(today) - new Date(dateStr)) / 86400000);
                 };
+                const clientsWithFutureBooking = new Set(
+                  bookings.filter(b => b.date > today && b.status !== "cancellato" && b.status !== "no-show").map(b => b.clientId)
+                );
                 const clientsWithDays = clients
                   .map(c => ({ ...c, ...(clientBookingStats[c.id] || {}), days: daysSince((clientBookingStats[c.id] || {}).lastVisit) }))
-                  .filter(c => c.days !== null && c.visitCount > 0);
+                  .filter(c => c.days !== null && c.visitCount > 0 && !clientsWithFutureBooking.has(c.id));
                 const at30 = clientsWithDays.filter(c => c.days >= 30 && c.days < 60).sort((a, b) => b.days - a.days);
                 const at60 = clientsWithDays.filter(c => c.days >= 60 && c.days < 90).sort((a, b) => b.days - a.days);
                 const at90 = clientsWithDays.filter(c => c.days >= 90 && c.days < 180).sort((a, b) => b.days - a.days);
