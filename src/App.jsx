@@ -479,7 +479,8 @@ export default function ShifuKuAI() {
   ]);
   const [waInput, setWaInput] = useState("");
   const [forecastRange, setForecastRange] = useState("6m");
-  const [overviewBarColor, setOverviewBarColor] = useState("#6EE7B7");
+  const [overviewPastColor, setOverviewPastColor] = useState("#6EE7B7");
+  const [overviewFutureColor, setOverviewFutureColor] = useState("#A78BFA");
   const [overviewLineColor, setOverviewLineColor] = useState("#F59E0B");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedClientIds, setSelectedClientIds] = useState(new Set());
@@ -1172,22 +1173,34 @@ export default function ShifuKuAI() {
     return { clientProfiles, monthBuckets, avgCycleAll, activeClients, churnedClients };
   }, [clients, bookings]);
 
-  // Dashboard: ultimi 6 mesi storici + prossimi 3 mesi forecast
+  // Dashboard: ultimi 6 mesi storici (consuntivo) + prossimi 3 mesi (prenotati + forecast AI)
   const dashboardChartData = useMemo(() => {
     const MONTH_NAMES = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
-    const hist = monthlyData.slice(-6);
-    const now = new Date();
+    // Past 6 months: consuntivo (completato + confermato su date passate)
+    const today = new Date();
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const hist = monthlyData.slice(-6).map((m, i, arr) => {
+      // Per il mese corrente (ultimo della lista) usa solo date <= oggi
+      if (i === arr.length - 1) {
+        const prefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+        const mb = bookings.filter(b => b.date.startsWith(prefix) && b.date <= todayKey && (b.status === "completato" || b.status === "confermato"));
+        return { ...m, revenue: mb.reduce((s, b) => s + b.price, 0), count: mb.length, type: "past" };
+      }
+      return { ...m, type: "past" };
+    });
+    // Future 3 months: prenotazioni già in essere + forecast AI (additivi)
     const fcMonths = [];
     for (let i = 1; i <= 3; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const label = MONTH_NAMES[d.getMonth()];
       const bucket = clientForecast.monthBuckets[key] || { high: [], medium: [], low: [], totalRev: 0 };
-      const actualBooked = bookings.filter(b => b.date.startsWith(key) && (b.status === "confermato" || b.status === "in-attesa")).length;
-      const actualRev = bookings.filter(b => b.date.startsWith(key) && (b.status === "confermato" || b.status === "in-attesa")).reduce((s, b) => s + b.price, 0);
+      const bookedBs = bookings.filter(b => b.date.startsWith(key) && (b.status === "confermato" || b.status === "in-attesa"));
+      const bookedCount = bookedBs.length;
+      const bookedRev = bookedBs.reduce((s, b) => s + b.price, 0);
       const fcCount = bucket.high.length + bucket.medium.length + bucket.low.length;
       const fcRev = Math.round(bucket.totalRev);
-      fcMonths.push({ label, revenue: actualRev || fcRev, count: actualBooked || fcCount, profit: Math.round((actualRev || fcRev) * 0.68), type: "forecast", booked: actualBooked, forecastCount: fcCount });
+      fcMonths.push({ label, revenue: bookedRev + fcRev, count: bookedCount + fcCount, profit: Math.round((bookedRev + fcRev) * 0.68), type: "forecast", booked: bookedCount, forecastCount: fcCount });
     }
     return [...hist, ...fcMonths];
   }, [monthlyData, clientForecast, bookings]);
@@ -1446,19 +1459,23 @@ export default function ShifuKuAI() {
                 <div className="card">
                   <div className="card-header"><h3>Overview</h3>
                     <div style={{ display: "flex", gap: 12, alignItems: "center", fontSize: 11, color: "var(--text-muted)" }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", position: "relative" }} title="Colore barre">
-                        <span style={{ width: 10, height: 10, borderRadius: 2, background: overviewBarColor, border: "1px solid rgba(255,255,255,0.15)" }} /> Barre
-                        <input type="color" value={overviewBarColor} onChange={e => setOverviewBarColor(e.target.value)} style={{ position: "absolute", width: "100%", height: "100%", opacity: 0, cursor: "pointer", top: 0, left: 0 }} />
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", position: "relative" }} title="Colore barre passato">
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: overviewPastColor, border: "1px solid rgba(255,255,255,0.15)" }} /> Passato
+                        <input type="color" value={overviewPastColor} onChange={e => setOverviewPastColor(e.target.value)} style={{ position: "absolute", width: "100%", height: "100%", opacity: 0, cursor: "pointer", top: 0, left: 0 }} />
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", position: "relative" }} title="Colore barre futuro">
+                        <span style={{ width: 10, height: 10, borderRadius: 2, background: overviewFutureColor, border: "1px solid rgba(255,255,255,0.15)", borderStyle: "dashed" }} /> Futuro
+                        <input type="color" value={overviewFutureColor} onChange={e => setOverviewFutureColor(e.target.value)} style={{ position: "absolute", width: "100%", height: "100%", opacity: 0, cursor: "pointer", top: 0, left: 0 }} />
                       </label>
                       <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", position: "relative" }} title="Colore linea prenotazioni">
                         <span style={{ width: 16, height: 2, background: overviewLineColor, borderRadius: 1, display: "inline-block" }} /> Prenotazioni
                         <input type="color" value={overviewLineColor} onChange={e => setOverviewLineColor(e.target.value)} style={{ position: "absolute", width: "100%", height: "100%", opacity: 0, cursor: "pointer", top: 0, left: 0 }} />
                       </label>
-                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: "var(--purple)", border: "1px dashed var(--purple)" }} /> Forecast</span>
                     </div>
                   </div>
                   {(() => {
                     const n = dashboardChartData.length;
+                    const maxRev = Math.max(...dashboardChartData.map(m => m.revenue), 1);
                     const maxCount = Math.max(...dashboardChartData.map(m => m.count), 1);
                     const barBottom = 190; const barH = 140; const unitW = 900 / n;
                     const hex2rgba = (hex, a) => { const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; };
@@ -1466,20 +1483,28 @@ export default function ShifuKuAI() {
                     return (
                       <div style={{ position: "relative" }}>
                         <div className="bar-chart">
-                          {dashboardChartData.map((m, i) => (
-                            <div className="bar-col" key={i}>
-                              <div className="bar-value" style={{ color: m.type === "forecast" ? "var(--purple)" : i === 5 ? overviewBarColor : "var(--text-dim)", textAlign: "center" }}>
-                                €{(m.revenue / 1000).toFixed(1)}k
+                          {dashboardChartData.map((m, i) => {
+                            const isFuture = m.type === "forecast";
+                            const color = isFuture ? overviewFutureColor : overviewPastColor;
+                            const isCurrentMonth = !isFuture && i === 5;
+                            const barBg = isFuture
+                              ? `linear-gradient(180deg, ${color} 0%, ${hex2rgba(color, 0.2)} 100%)`
+                              : isCurrentMonth ? color : hex2rgba(color, 0.35);
+                            return (
+                              <div className="bar-col" key={i}>
+                                <div className="bar-value" style={{ color: isCurrentMonth ? color : isFuture ? color : "var(--text-dim)", textAlign: "center" }}>
+                                  €{(m.revenue / 1000).toFixed(1)}k
+                                </div>
+                                <div className="bar" style={{
+                                  height: `${(m.revenue / maxRev) * 140}px`,
+                                  background: barBg,
+                                  border: isFuture ? `1px dashed ${hex2rgba(color, 0.5)}` : "none",
+                                  borderBottom: "none",
+                                }} />
+                                <div className="bar-label" style={{ color: isFuture ? color : undefined }}>{m.label}</div>
                               </div>
-                              <div className="bar" style={{
-                                height: `${(m.revenue / maxMonthlyRev) * 140}px`,
-                                background: m.type === "forecast" ? "linear-gradient(180deg, var(--purple) 0%, rgba(167,139,250,0.2) 100%)" : i === 5 ? overviewBarColor : hex2rgba(overviewBarColor, 0.25),
-                                border: m.type === "forecast" ? "1px dashed rgba(167,139,250,0.4)" : "none",
-                                borderBottom: "none",
-                              }} />
-                              <div className="bar-label" style={{ color: m.type === "forecast" ? "var(--purple)" : undefined }}>{m.label}</div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                         <svg viewBox="0 0 900 210" preserveAspectRatio="none" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
                           <polyline points={pts.map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke={overviewLineColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
