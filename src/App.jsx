@@ -1994,7 +1994,7 @@ export default function ShifuKuAI() {
                   <div className="card" style={{ padding: 0 }}>
                     <table>
                       <thead><tr>
-                        <th style={{ width: 40, textAlign: "center" }}><input type="checkbox" checked={currentMonthBookings.length > 0 && selectedBookingIds.size === currentMonthBookings.length} onChange={() => selectAllBookings(currentMonthBookings.map(b => b.id))} style={{ width: 16, height: 16, accentColor: "var(--accent)", cursor: "pointer" }} /></th>
+                        <th style={{ width: 40, textAlign: "center" }}><input type="checkbox" checked={bookings.length > 0 && selectedBookingIds.size === bookings.length} onChange={() => selectAllBookings(bookings.map(b => b.id))} style={{ width: 16, height: 16, accentColor: "var(--accent)", cursor: "pointer" }} /></th>
                         <th>Data</th><th>Ora</th><th>Cliente</th><th>Cane</th><th>Servizio</th><th>Stato</th><th>Pagamento</th><th>Importo</th><th></th>
                       </tr></thead>
                       <tbody>
