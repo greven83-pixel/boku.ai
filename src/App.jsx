@@ -2884,40 +2884,40 @@ export default function ShifuKuAI() {
               <div className="header-left"><h2>Impostazioni</h2><p>Personalizza l'app</p></div>
             </div>
             <div className="content">
-              <div className="card" style={{ maxWidth: 700 }}>
+              <div className="card" style={{ maxWidth: 560 }}>
                 <div className="card-header"><h3>Tema</h3></div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 16, marginTop: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginTop: 4 }}>
                   {[
-                    { id: "midnight", name: "Midnight", bg: "#0B1120", bg2: "#111827", accent: "#6EE7B7", desc: "Blu notte, menta" },
-                    { id: "obsidian", name: "Obsidian", bg: "#0D0D14", bg2: "#13131F", accent: "#A78BFA", desc: "Nero, viola" },
-                    { id: "sakura", name: "Sakura", bg: "#120B0F", bg2: "#1C1118", accent: "#F472B6", desc: "Scuro, rosa" },
-                    { id: "forest", name: "Forest", bg: "#091210", bg2: "#0F1A17", accent: "#34D399", desc: "Verde smeraldo" },
+                    { id: "midnight", name: "Midnight", bg: "#0B1120", bg2: "#111827", accent: "#6EE7B7", desc: "Blu notte · menta" },
+                    { id: "obsidian", name: "Obsidian", bg: "#0D0D14", bg2: "#13131F", accent: "#A78BFA", desc: "Nero · viola" },
+                    { id: "sakura",   name: "Sakura",   bg: "#120B0F", bg2: "#1C1118", accent: "#F472B6", desc: "Scuro · rosa" },
+                    { id: "forest",  name: "Forest",   bg: "#091210", bg2: "#0F1A17", accent: "#34D399", desc: "Verde · smeraldo" },
                   ].map(t => (
                     <div key={t.id} onClick={() => setTheme(t.id)}
-                      style={{ borderRadius: 12, overflow: "hidden", cursor: "pointer", border: `2px solid ${theme === t.id ? t.accent : "var(--border)"}`, transition: "border-color 200ms", background: t.bg }}>
-                      {/* Preview */}
-                      <div style={{ padding: 12, background: t.bg }}>
-                        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-                          <div style={{ width: 32, borderRadius: 4, background: t.bg2, height: 52 }} />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ height: 10, borderRadius: 3, background: t.accent, marginBottom: 5, width: "70%" }} />
-                            <div style={{ height: 8, borderRadius: 3, background: t.bg2, marginBottom: 4, width: "90%" }} />
-                            <div style={{ height: 8, borderRadius: 3, background: t.bg2, width: "60%" }} />
+                      style={{ borderRadius: 8, overflow: "hidden", cursor: "pointer", border: `2px solid ${theme === t.id ? t.accent : "var(--border)"}`, transition: "border-color 150ms" }}>
+                      {/* Mini preview */}
+                      <div style={{ padding: 8, background: t.bg, display: "flex", flexDirection: "column", gap: 4 }}>
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <div style={{ width: 18, borderRadius: 3, background: t.bg2, height: 28, flexShrink: 0 }} />
+                          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                            <div style={{ height: 5, borderRadius: 2, background: t.accent, width: "70%" }} />
+                            <div style={{ height: 4, borderRadius: 2, background: t.bg2, width: "90%" }} />
+                            <div style={{ height: 4, borderRadius: 2, background: t.bg2, width: "55%" }} />
                           </div>
                         </div>
-                        <div style={{ display: "flex", gap: 4 }}>
-                          {[0.9, 0.6, 0.75, 0.45].map((h, i) => (
-                            <div key={i} style={{ flex: 1, height: 24 * h, borderRadius: "3px 3px 0 0", background: i < 2 ? t.accent : `${t.accent}55`, alignSelf: "flex-end" }} />
+                        <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 16 }}>
+                          {[0.9, 0.55, 0.75, 0.4].map((h, i) => (
+                            <div key={i} style={{ flex: 1, height: `${h * 100}%`, borderRadius: "2px 2px 0 0", background: i < 2 ? t.accent : `${t.accent}55` }} />
                           ))}
                         </div>
                       </div>
                       {/* Label */}
-                      <div style={{ padding: "8px 12px", background: t.bg2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ padding: "5px 8px", background: t.bg2, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: t.accent }}>{t.name}</div>
-                          <div style={{ fontSize: 11, color: "#64748B", marginTop: 1 }}>{t.desc}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: t.accent }}>{t.name}</div>
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>{t.desc}</div>
                         </div>
-                        {theme === t.id && <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.accent, boxShadow: `0 0 8px ${t.accent}` }} />}
+                        {theme === t.id && <div style={{ width: 6, height: 6, borderRadius: "50%", background: t.accent, boxShadow: `0 0 6px ${t.accent}`, flexShrink: 0 }} />}
                       </div>
                     </div>
                   ))}
