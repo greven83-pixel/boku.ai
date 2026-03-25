@@ -1512,7 +1512,7 @@ export default function ShifuKuAI() {
                         </div>
                         <svg viewBox="0 0 900 210" preserveAspectRatio="none" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
                           {/* Segmento passato: punti 0..5 (incluso punto di giunzione) */}
-                          <polyline points={pts.slice(0, 7).map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke={overviewLinePastColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                          <polyline points={pts.slice(0, 6).map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke={overviewLinePastColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
                           {/* Segmento futuro: da punto 5 (giunzione) ai punti forecast */}
                           <polyline points={pts.slice(5).map(p => `${p.x},${p.y}`).join(" ")} fill="none" stroke={overviewLineFutureColor} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" strokeDasharray="5 3" />
                           {pts.map((p, i) => {
@@ -1615,7 +1615,9 @@ export default function ShifuKuAI() {
                                   <div style={{ width: 30, height: 30, borderRadius: "50%", background: dimColors[i], display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: colors[i], flexShrink: 0 }}>{c.firstName[0]}{c.lastName[0]}</div>
                                   <div>
                                     <div style={{ fontWeight: 600, fontSize: 13 }}>{c.firstName} {c.lastName}</div>
-                                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.petName}</div>
+                                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                                      {(clientPetsMap[c.id] || []).map(p => `${ANIMAL_COLORS[p.animalType]?.emoji || "🐾"} ${p.name}`).join("  ") || c.petName}
+                                    </div>
                                   </div>
                                 </div>
                               </td>
