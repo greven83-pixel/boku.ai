@@ -208,7 +208,7 @@ const CSS = `
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body, html, #root { height: 100%; width: 100%; font-family: var(--font); font-size: 15px; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+body, html, #root { height: 100%; width: 100%; font-family: var(--font); font-size: 16px; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
 .app { display: flex; height: 100vh; overflow: hidden; }
 
 /* Sidebar */
@@ -219,7 +219,7 @@ body, html, #root { height: 100%; width: 100%; font-family: var(--font); font-si
 .sidebar-logo .ai-badge { display: inline-flex; align-items: center; background: #10B981; color: #fff; font-size: 14px; font-weight: 900; padding: 4px 12px; border-radius: 6px; margin-left: 8px; letter-spacing: 0.12em; vertical-align: middle; -webkit-text-fill-color: #fff; -webkit-background-clip: unset; }
 .sidebar-logo p { font-size: 11px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; }
 .sidebar-nav { padding: 12px 10px; flex: 1; }
-.nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 8px; color: var(--text-dim); cursor: pointer; font-size: 15px; font-weight: 400; transition: all var(--transition); margin-bottom: 2px; border: 1px solid transparent; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 8px; color: var(--text-dim); cursor: pointer; font-size: 16px; font-weight: 400; transition: all var(--transition); margin-bottom: 2px; border: 1px solid transparent; }
 .nav-item:hover { background: var(--bg3); color: var(--text); }
 .nav-item.active { background: var(--bg3); color: var(--text); font-weight: 600; border-color: var(--border); }
 .nav-item.active .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
@@ -228,31 +228,31 @@ body, html, #root { height: 100%; width: 100%; font-family: var(--font); font-si
 /* Main */
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .header { padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--bg2); }
-.header-left h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
-.header-left p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.header-left h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.header-left p { font-size: 14px; color: var(--text-muted); margin-top: 2px; }
 .content { flex: 1; overflow-y: auto; padding: 24px 32px; }
 
 /* Buttons */
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--bg3); color: var(--text); transition: all var(--transition); font-family: var(--font); }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 15px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--bg3); color: var(--text); transition: all var(--transition); font-family: var(--font); }
 .btn:hover { border-color: var(--text-muted); background: var(--bg-hover); }
 .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
 .btn-primary:hover { background: var(--accent-hover); }
-.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
 .btn-whatsapp { background: #25D366; color: white; border-color: #25D366; }
 .btn-whatsapp:hover { background: #1ebe5d; }
 
 /* Cards */
 .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.card-header h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
-.badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
+.card-header h3 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
 
 /* Stats */
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
 .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
-.stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-label { font-size: 13px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
 .stat-value { font-size: 28px; font-weight: 800; margin-top: 6px; letter-spacing: -0.03em; }
-.stat-change { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 600; margin-top: 6px; padding: 2px 8px; border-radius: 20px; }
+.stat-change { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 600; margin-top: 6px; padding: 2px 8px; border-radius: 20px; }
 .stat-change.up { color: var(--success); background: var(--success-dim); }
 .stat-change.down { color: var(--danger); background: var(--danger-dim); }
 
@@ -264,17 +264,17 @@ body, html, #root { height: 100%; width: 100%; font-family: var(--font); font-si
 .cal-cell.other-month { background: var(--bg2); }
 .cal-cell.other-month .cal-day { color: var(--text-muted); }
 .cal-cell.today { background: var(--accent-dim); }
-.cal-day { font-size: 12px; font-weight: 600; margin-bottom: 4px; padding: 2px 4px; }
-.cal-booking { font-size: 10px; padding: 2px 5px; margin-bottom: 2px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; font-weight: 500; }
+.cal-day { font-size: 13px; font-weight: 600; margin-bottom: 4px; padding: 2px 4px; }
+.cal-booking { font-size: 11px; padding: 2px 5px; margin-bottom: 2px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; font-weight: 500; }
 .cal-booking.cancellato, .cal-booking.no-show { opacity: 0.4; }
 .cal-more { font-size: 10px; color: var(--text-muted); padding: 2px 5px; font-weight: 500; }
 
 /* Table */
 table { width: 100%; border-collapse: collapse; }
-thead th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--bg3); }
-tbody td { padding: 12px 14px; font-size: 14px; border-bottom: 1px solid var(--border); }
+thead th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--bg3); }
+tbody td { padding: 12px 14px; font-size: 15px; border-bottom: 1px solid var(--border); }
 tbody tr:hover { background: var(--bg3); }
-.status-badge { display: inline-flex; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.status-badge { display: inline-flex; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .status-badge.completato { background: var(--success-dim); color: var(--success); }
 .status-badge.confermato { background: var(--blue-dim); color: var(--blue); }
 .status-badge.in-attesa { background: var(--warning-dim); color: var(--warning); }
@@ -282,14 +282,14 @@ tbody tr:hover { background: var(--bg3); }
 .status-badge.no-show { background: var(--purple-dim); color: var(--purple); }
 
 /* Input */
-input, select, textarea { font-family: var(--font); font-size: 14px; padding: 9px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg3); color: var(--text); width: 100%; transition: border var(--transition); outline: none; }
+input, select, textarea { font-family: var(--font); font-size: 15px; padding: 9px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg3); color: var(--text); width: 100%; transition: border var(--transition); outline: none; }
 input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 input::placeholder, textarea::placeholder { color: var(--text-muted); }
-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; display: block; }
+label { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; display: block; }
 
 /* Tabs */
 .tabs { display: flex; gap: 2px; background: var(--bg2); border-radius: 8px; padding: 3px; margin-bottom: 20px; width: fit-content; border: 1px solid var(--border); }
-.tab { padding: 7px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all var(--transition); color: var(--text-muted); border: none; background: transparent; font-family: var(--font); }
+.tab { padding: 7px 16px; border-radius: 6px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all var(--transition); color: var(--text-muted); border: none; background: transparent; font-family: var(--font); }
 .tab.active { background: var(--bg3); color: var(--text); box-shadow: var(--shadow); }
 
 /* Charts */
@@ -297,15 +297,15 @@ label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bott
 .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 6px; }
 .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 600ms ease; min-height: 2px; }
 .bar:hover { opacity: 0.8; }
-.bar-label { font-size: 10px; color: var(--text-muted); font-weight: 500; }
-.bar-value { font-size: 10px; font-weight: 700; }
+.bar-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+.bar-value { font-size: 12px; font-weight: 700; }
 
 /* Forecast bar */
 .forecast-bar-bg { flex: 1; height: 24px; background: var(--bg3); border-radius: 12px; overflow: hidden; }
 .forecast-bar-fill { height: 100%; border-radius: 12px; transition: width 800ms ease; }
 
 /* Pills */
-.pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
 .pill-wa { background: rgba(37,211,102,0.15); color: #25D366; }
 .pill-ig { background: rgba(193,53,132,0.15); color: #E1306C; }
 .pill-tel { background: var(--blue-dim); color: var(--blue); }
@@ -314,8 +314,8 @@ label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bott
 
 /* AI Insight */
 .insight-card { background: linear-gradient(135deg, rgba(110,231,183,0.06) 0%, rgba(167,139,250,0.06) 100%); border: 1px solid rgba(110,231,183,0.15); border-radius: var(--radius); padding: 22px; margin-bottom: 16px; }
-.insight-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-.insight-card p { font-size: 13px; line-height: 1.6; color: var(--text-dim); }
+.insight-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.insight-card p { font-size: 14px; line-height: 1.6; color: var(--text-dim); }
 .insight-tag { display: inline-flex; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-right: 6px; margin-top: 10px; }
 .insight-tag.revenue { background: var(--success-dim); color: var(--success); }
 .insight-tag.action { background: var(--orange-dim); color: var(--orange); }
@@ -330,7 +330,7 @@ label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bott
 
 /* WhatsApp */
 .wa-chat { display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; padding: 12px; background: rgba(37,211,102,0.04); border: 1px solid rgba(37,211,102,0.1); border-radius: 8px; }
-.wa-msg { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 13px; line-height: 1.4; }
+.wa-msg { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.4; }
 .wa-msg.out { background: rgba(37,211,102,0.15); color: var(--text); align-self: flex-end; border-bottom-right-radius: 2px; }
 .wa-msg.in { background: var(--bg3); color: var(--text); align-self: flex-start; border-bottom-left-radius: 2px; }
 .wa-msg .wa-time { font-size: 10px; color: var(--text-muted); text-align: right; margin-top: 3px; }
@@ -363,8 +363,8 @@ select option { background: var(--bg3); color: var(--text); }
 .client-picker-item:last-child { border-bottom: none; }
 .client-picker-item:hover { background: var(--bg3); }
 .client-picker-item.selected { background: var(--accent-dim); }
-.client-picker-item .cpi-name { font-size: 13px; font-weight: 600; }
-.client-picker-item .cpi-dog { font-size: 12px; color: var(--text-dim); }
+.client-picker-item .cpi-name { font-size: 14px; font-weight: 600; }
+.client-picker-item .cpi-dog { font-size: 13px; color: var(--text-dim); }
 .client-picker-item .cpi-breed { font-size: 11px; color: var(--text-muted); }
 .client-picker-selected { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--accent-dim); border: 1px solid rgba(110,231,183,0.2); border-radius: var(--radius-sm); }
 .client-picker-selected .cps-info { flex: 1; }
@@ -1677,6 +1677,41 @@ export default function ShifuKuAI() {
               </div>
             </div>
             <div className="content">
+              {/* CALENDAR METRICS */}
+              {(() => {
+                const monthPrefix = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`;
+                const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
+                const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
+                const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")}`;
+                const notCancelled = b => b.status !== "cancellato" && b.status !== "no-show";
+                const confirmed = b => b.status === "confermato" || b.status === "completato" || b.status === "in-attesa";
+                let viewBs;
+                if (calView === "month") viewBs = bookings.filter(b => b.date.startsWith(monthPrefix));
+                else if (calView === "week") viewBs = bookings.filter(b => b.date >= weekStartStr && b.date <= weekEndStr);
+                else viewBs = selectedDate ? bookings.filter(b => b.date === selectedDate) : bookings.filter(b => b.date.startsWith(monthPrefix));
+                const total = viewBs.filter(notCancelled).length;
+                const rev = viewBs.filter(confirmed).reduce((s, b) => s + b.price, 0);
+                const confirmed_ = viewBs.filter(b => b.status === "confermato" || b.status === "in-attesa").length;
+                const completed = viewBs.filter(b => b.status === "completato").length;
+                const cancelled = viewBs.filter(b => b.status === "cancellato" || b.status === "no-show").length;
+                return (
+                  <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+                    {[
+                      ["Appuntamenti", total, "var(--accent)", "var(--accent-dim)"],
+                      ["Confermati", confirmed_, "var(--blue)", "var(--blue-dim)"],
+                      ["Completati", completed, "var(--success)", "var(--success-dim)"],
+                      ["Cancellati", cancelled, "var(--danger)", "var(--danger-dim)"],
+                      ["Fatturato previsto", `€${rev.toLocaleString("it-IT")}`, "var(--purple)", "var(--purple-dim)"],
+                    ].map(([label, value, color, bg]) => (
+                      <div key={label} style={{ background: bg, border: `1px solid ${color}22`, borderRadius: 10, padding: "10px 16px", minWidth: 110 }}>
+                        <div style={{ fontSize: 11, color, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color, marginTop: 2 }}>{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
               {/* MONTHLY VIEW */}
               {calView === "month" && (
                 <div style={{ display: "flex", gap: 24 }}>
