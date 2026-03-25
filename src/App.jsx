@@ -493,6 +493,7 @@ export default function ShifuKuAI() {
     const diff = d.getDate() - (day === 0 ? 6 : day - 1);
     return new Date(d.getFullYear(), d.getMonth(), diff);
   });
+  const [dayViewDate, setDayViewDate] = useState(() => new Date());
 
   // Drag-to-book state
   const [dragState, setDragState] = useState(null); // { dayIdx, startSlot, currentSlot }
@@ -1657,6 +1658,7 @@ export default function ShifuKuAI() {
                 <div className="tabs" style={{ marginBottom: 0 }}>
                   <button className={`tab ${calView === "month" ? "active" : ""}`} onClick={() => setCalView("month")}>Mensile</button>
                   <button className={`tab ${calView === "week" ? "active" : ""}`} onClick={() => setCalView("week")}>Settimanale</button>
+                  <button className={`tab ${calView === "day" ? "active" : ""}`} onClick={() => setCalView("day")}>Giornaliero</button>
                   <button className={`tab ${calView === "list" ? "active" : ""}`} onClick={() => setCalView("list")}>Lista</button>
                 </div>
                 {calView === "month" && (<>
@@ -1672,13 +1674,19 @@ export default function ShifuKuAI() {
                   <button className="btn btn-sm" onClick={() => setWeekStart(d => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7))}><Icon name="right" size={14} /></button>
                   <button className="btn btn-sm" onClick={() => { const d = new Date(); const day = d.getDay(); setWeekStart(new Date(d.getFullYear(), d.getMonth(), d.getDate() - (day === 0 ? 6 : day - 1))); }}>Oggi</button>
                 </>)}
+                {calView === "day" && (<>
+                  <button className="btn btn-sm" onClick={() => setDayViewDate(d => { const n = new Date(d); n.setDate(n.getDate() - 1); return n; })}><Icon name="left" size={14} /></button>
+                  <span style={{ fontWeight: 600, fontSize: 14, minWidth: 200, textAlign: "center" }}>{dayViewDate.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</span>
+                  <button className="btn btn-sm" onClick={() => setDayViewDate(d => { const n = new Date(d); n.setDate(n.getDate() + 1); return n; })}><Icon name="right" size={14} /></button>
+                  <button className="btn btn-sm" onClick={() => setDayViewDate(new Date())}>Oggi</button>
+                </>)}
                 <button className="btn" onClick={() => { setImportBookingRows([]); setImportBookingStats(null); setShowModal("importBookings"); }}>⬆ Importa Storico</button>
                 <button className="btn btn-primary" onClick={() => setShowModal("new")}><Icon name="plus" size={16} /> Prenota</button>
               </div>
             </div>
             <div className="content">
               {/* CALENDAR METRICS */}
-              {calView !== "list" && (() => {
+              {calView !== "list" && calView !== "day" && (() => {
                 const monthPrefix = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`;
                 const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
                 const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
@@ -1906,6 +1914,84 @@ export default function ShifuKuAI() {
                           </div>
                         );
                       })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* DAY VIEW */}
+              {calView === "day" && (() => {
+                const SLOT_H = 36;
+                const START_HOUR = 8;
+                const HOURS = 13; // 8:00 → 20:00
+                const dayStr = `${dayViewDate.getFullYear()}-${String(dayViewDate.getMonth() + 1).padStart(2, "0")}-${String(dayViewDate.getDate()).padStart(2, "0")}`;
+                const dayBs = bookings.filter(b => b.date === dayStr).sort((a, b) => a.time.localeCompare(b.time));
+                const isToday_ = dayStr === todayStr;
+                const nowMin = isToday_ ? (new Date().getHours() - START_HOUR) * 60 + new Date().getMinutes() : -1;
+                return (
+                  <div>
+                    {/* Day metrics */}
+                    <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+                      {[
+                        ["Appuntamenti", dayBs.filter(b => b.status !== "cancellato" && b.status !== "no-show").length, "var(--accent)", "var(--accent-dim)"],
+                        ["Confermati", dayBs.filter(b => b.status === "confermato" || b.status === "in-attesa").length, "var(--blue)", "var(--blue-dim)"],
+                        ["Completati", dayBs.filter(b => b.status === "completato").length, "var(--success)", "var(--success-dim)"],
+                        ["Cancellati", dayBs.filter(b => b.status === "cancellato" || b.status === "no-show").length, "var(--danger)", "var(--danger-dim)"],
+                        ["Fatturato", `€${dayBs.filter(b => b.status !== "cancellato" && b.status !== "no-show").reduce((s, b) => s + b.price, 0).toLocaleString("it-IT")}`, "var(--purple)", "var(--purple-dim)"],
+                      ].map(([label, value, color, bg]) => (
+                        <div key={label} style={{ background: bg, border: `1px solid ${color}22`, borderRadius: 10, padding: "10px 16px", minWidth: 110 }}>
+                          <div style={{ fontSize: 11, color, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+                          <div style={{ fontSize: 22, fontWeight: 800, color, marginTop: 2 }}>{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "grid", gridTemplate: "auto / 56px 1fr", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+                      {/* Header */}
+                      <div style={{ background: "var(--bg3)", borderBottom: "1px solid var(--border)", padding: "10px 6px" }} />
+                      <div style={{ background: "var(--bg3)", borderBottom: "1px solid var(--border)", borderLeft: "1px solid var(--border)", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: isToday_ ? "var(--accent)" : "var(--text)" }}>{dayViewDate.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}</span>
+                        {isToday_ && <span className="badge" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>Oggi</span>}
+                        <span style={{ fontSize: 13, color: "var(--text-muted)", marginLeft: "auto" }}>{dayBs.length} appuntamenti</span>
+                      </div>
+                      {/* Time + booking column */}
+                      <div className="week-time-col">
+                        {Array.from({ length: HOURS }, (_, h) => (
+                          <div key={h} className="week-time-label">{h + START_HOUR}:00</div>
+                        ))}
+                      </div>
+                      <div style={{ position: "relative", borderLeft: "1px solid var(--border)", minHeight: HOURS * SLOT_H }}>
+                        {/* Hour slots */}
+                        {Array.from({ length: HOURS }, (_, h) => (
+                          <div key={h} className="week-slot" onClick={() => { const t = `${String(h + START_HOUR).padStart(2, "0")}:00`; setNewBookingForm(f => ({ ...f, date: dayStr, time: t })); setShowModal("new"); }} />
+                        ))}
+                        {/* Now line */}
+                        {nowMin >= 0 && nowMin <= HOURS * 60 && (
+                          <div className="week-now-line" style={{ top: nowMin * (SLOT_H / 60) }} />
+                        )}
+                        {/* Bookings */}
+                        {dayBs.map(b => {
+                          const [bh, bm] = b.time.split(":").map(Number);
+                          const topMin = (bh - START_HOUR) * 60 + bm;
+                          const durMin = b.duration || 60;
+                          const topPx = topMin * (SLOT_H / 60);
+                          const heightPx = durMin * (SLOT_H / 60);
+                          const ac = ANIMAL_COLORS[b.animalType] || ANIMAL_COLORS.altro;
+                          if (bh < START_HOUR || bh >= START_HOUR + HOURS) return null;
+                          return (
+                            <div key={b.id} className={`week-booking-block ${b.status}`} style={{ position: "absolute", top: topPx + 1, left: 4, right: 4, height: Math.max(heightPx - 2, 22), background: ac.bg, borderLeft: `3px solid ${ac.text}`, borderRadius: 6, padding: "4px 8px", cursor: "pointer", overflow: "hidden", zIndex: 2 }}
+                              onClick={() => openEditBooking(b)}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                <span style={{ fontWeight: 700, fontSize: 13, color: ac.text }}>{b.time}</span>
+                                <span style={{ fontWeight: 600, fontSize: 13 }}>{ac.emoji} {b.petName}</span>
+                                <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{b.clientName}</span>
+                                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>· {b.serviceName}</span>
+                                <span className={`status-badge ${b.status}`} style={{ marginLeft: "auto", flexShrink: 0 }}>{b.status}</span>
+                                <span style={{ fontWeight: 700, fontSize: 13, color: "var(--accent)", flexShrink: 0 }}>€{b.price}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 );
