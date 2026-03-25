@@ -1049,6 +1049,22 @@ export default function ShifuKuAI() {
     setSelectedBookingIds(new Set());
   };
 
+  const bulkUpdateBookingStatus = async (status) => {
+    if (selectedBookingIds.size === 0) return;
+    const ids = [...selectedBookingIds];
+    await supabase.from('bookings').update({ status }).in('id', ids);
+    setBookings(prev => prev.map(b => selectedBookingIds.has(b.id) ? { ...b, status } : b));
+    setSelectedBookingIds(new Set());
+  };
+
+  const bulkUpdateBookingPayment = async (payment) => {
+    if (selectedBookingIds.size === 0) return;
+    const ids = [...selectedBookingIds];
+    await supabase.from('bookings').update({ payment }).in('id', ids);
+    setBookings(prev => prev.map(b => selectedBookingIds.has(b.id) ? { ...b, payment } : b));
+    setSelectedBookingIds(new Set());
+  };
+
   const currentMonthBookings = useMemo(() => {
     const prefix = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`;
     return bookings.filter(b => b.date.startsWith(prefix));
@@ -1985,9 +2001,20 @@ export default function ShifuKuAI() {
               {calView === "list" && (
                 <div>
                   {selectedBookingIds.size > 0 && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 20px", background: "var(--danger-dim)", borderRadius: 10, marginBottom: 16, border: "1px solid rgba(248,113,113,0.2)" }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--danger)" }}>{selectedBookingIds.size} prenotazioni selezionate</span>
-                      <button className="btn btn-sm" style={{ color: "var(--danger)", borderColor: "var(--danger)" }} onClick={bulkDeleteBookings}><Icon name="x" size={14} /> Elimina selezionate</button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "var(--bg3)", borderRadius: 10, marginBottom: 16, border: "1px solid var(--border)", flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent)", marginRight: 4 }}>{selectedBookingIds.size} selezionate</span>
+                      <span style={{ color: "var(--border)", fontSize: 16 }}>|</span>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Stato:</span>
+                      {["confermato","completato","in-attesa","cancellato","no-show"].map(s => (
+                        <button key={s} className="btn btn-sm" style={{ fontSize: 11, padding: "3px 10px" }} onClick={() => bulkUpdateBookingStatus(s)}>{s}</button>
+                      ))}
+                      <span style={{ color: "var(--border)", fontSize: 16 }}>|</span>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Pagamento:</span>
+                      {["pos","contanti","bonifico"].map(p => (
+                        <button key={p} className="btn btn-sm" style={{ fontSize: 11, padding: "3px 10px" }} onClick={() => bulkUpdateBookingPayment(p)}>{p === "pos" ? "POS" : p.charAt(0).toUpperCase() + p.slice(1)}</button>
+                      ))}
+                      <span style={{ color: "var(--border)", fontSize: 16 }}>|</span>
+                      <button className="btn btn-sm" style={{ color: "var(--danger)", borderColor: "var(--danger)", fontSize: 11 }} onClick={bulkDeleteBookings}><Icon name="x" size={13} /> Elimina</button>
                       <button className="btn btn-sm" onClick={() => setSelectedBookingIds(new Set())} style={{ marginLeft: "auto" }}>Deseleziona</button>
                     </div>
                   )}
