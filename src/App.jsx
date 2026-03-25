@@ -1280,10 +1280,10 @@ export default function ShifuKuAI() {
     const today = new Date();
     const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     const hist = monthlyData.slice(-6).map((m, i, arr) => {
-      // Per il mese corrente (ultimo della lista) usa solo date <= oggi
+      // Per il mese corrente usa tutte le prenotazioni del mese (passate + future)
       if (i === arr.length - 1) {
         const prefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-        const mb = bookings.filter(b => b.date.startsWith(prefix) && b.date <= todayKey && (b.status === "completato" || b.status === "confermato"));
+        const mb = bookings.filter(b => b.date.startsWith(prefix) && (b.status === "completato" || b.status === "confermato"));
         return { ...m, revenue: mb.reduce((s, b) => s + b.price, 0), count: mb.length, type: "past" };
       }
       return { ...m, type: "past" };
