@@ -2384,6 +2384,20 @@ export default function ShifuKuAI() {
                 const at60 = clientsWithDays.filter(c => c.days >= 60 && c.days < 90).sort((a, b) => b.days - a.days);
                 const at90 = clientsWithDays.filter(c => c.days >= 90 && c.days < 180).sort((a, b) => b.days - a.days);
                 const at180 = clientsWithDays.filter(c => c.days >= 180).sort((a, b) => b.days - a.days);
+                const exportRiskCSV = (list, label) => {
+                  const headers = ["Nome", "Cognome", "Telefono", "Animali", "Ultima visita", "Giorni fa", "Visite tot.", "Spesa tot. (€)"];
+                  const rows = list.map(c => [
+                    c.firstName, c.lastName, c.phone,
+                    (clientPetsMap[c.id] || []).map(p => `${p.name} (${p.animalType})`).join(" | "),
+                    c.lastVisit || "", c.days, c.visitCount, c.totalSpent
+                  ]);
+                  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+                  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url; a.download = `${label.replace(/[^a-z0-9]/gi, "_")}.csv`; a.click();
+                  URL.revokeObjectURL(url);
+                };
                 const RiskTable = ({ list, color, label, key30 }) => {
                   const isOpen = riskOpen === key30;
                   return (
@@ -2393,6 +2407,7 @@ export default function ShifuKuAI() {
                         <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
                         <span style={{ fontWeight: 700, fontSize: 13, flex: 1 }}>{label}</span>
                         <span style={{ fontSize: 12, color: "var(--text-muted)", background: "var(--bg2)", padding: "2px 10px", borderRadius: 10 }}>{list.length} clienti</span>
+                        <button className="btn btn-sm" style={{ fontSize: 11, padding: "3px 10px" }} onClick={e => { e.stopPropagation(); exportRiskCSV(list, label); }}>⬇ CSV</button>
                         <span style={{ fontSize: 12, color: "var(--text-muted)", marginLeft: 4 }}>{isOpen ? "▲" : "▼"}</span>
                       </div>
                       {isOpen && (
