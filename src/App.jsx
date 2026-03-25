@@ -1678,7 +1678,7 @@ export default function ShifuKuAI() {
             </div>
             <div className="content">
               {/* CALENDAR METRICS */}
-              {(() => {
+              {calView !== "list" && (() => {
                 const monthPrefix = `${calYear}-${String(calMonth + 1).padStart(2, "0")}`;
                 const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
                 const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, "0")}-${String(weekEnd.getDate()).padStart(2, "0")}`;
