@@ -1496,15 +1496,15 @@ export default function ShifuKuAI() {
                               : isCurrentMonth ? color : hex2rgba(color, 0.35);
                             return (
                               <div className="bar-col" key={i}>
-                                <div className="bar-value" style={{ color: isCurrentMonth ? color : isFuture ? color : "var(--text-dim)", textAlign: "center" }}>
-                                  €{(m.revenue / 1000).toFixed(1)}k
-                                </div>
                                 <div className="bar" style={{
                                   height: `${(m.revenue / maxRev) * 140}px`,
                                   background: barBg,
                                   border: isFuture ? `1px dashed ${hex2rgba(color, 0.5)}` : "none",
                                   borderBottom: "none",
                                 }} />
+                                <div className="bar-value" style={{ color: isCurrentMonth ? color : isFuture ? color : "var(--text-dim)", textAlign: "center" }}>
+                                  €{(m.revenue / 1000).toFixed(1)}k
+                                </div>
                                 <div className="bar-label" style={{ color: isFuture ? color : undefined }}>{m.label}</div>
                               </div>
                             );
